@@ -14,13 +14,13 @@ pub fn display_name() -> &'static str {
 }
 
 #[wasm_bindgen]
-pub fn mount_calculator(host_element: HtmlElement) {
+pub fn mount(host_element: HtmlElement) {
     host_element.set_inner_html(
         r#"
         <div class="flex flex-col gap-3 rounded-3xl border border-cyan-400/20 bg-slate-900/70 p-6 text-slate-100">
           <span class="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">Calculator</span>
-          <strong class="text-2xl font-semibold tracking-tight text-white">Tool mounted</strong>
-          <p class="text-sm leading-6 text-slate-300">The wasm tool host loaded this module, initialized it, and passed a live container element into the mount export.</p>
+          <strong class="text-2xl font-semibold tracking-tight text-white">Calculator</strong>
+          <p class="text-sm leading-6 text-slate-300">Stub UI rendered into the host element through the loader contract.</p>
         </div>
         "#,
     );

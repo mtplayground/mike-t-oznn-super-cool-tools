@@ -120,8 +120,8 @@ mod tests {
         tags = ["math", "utility"]
         description = "A simple calculator."
         thumbnail = "/assets/calculator.png"
-        crate_path = "tools/calculator"
-        entry_symbol = "mount_calculator"
+        crate_path = "crates/tools/calculator"
+        entry_symbol = "mount"
         wasm_url = "/tools/calculator/calculator.wasm"
     "#;
 
@@ -133,8 +133,8 @@ mod tests {
         let tool: &RegisteredTool = &registry.tools[0];
         assert_eq!(tool.meta.id, "calculator");
         assert_eq!(tool.meta.category, Category::Math);
-        assert_eq!(tool.crate_path, "tools/calculator");
-        assert_eq!(tool.entry_symbol, "mount_calculator");
+        assert_eq!(tool.crate_path, "crates/tools/calculator");
+        assert_eq!(tool.entry_symbol, "mount");
         assert_eq!(tool.wasm_url, "/tools/calculator/calculator.wasm");
     }
 

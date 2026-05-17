@@ -7,7 +7,7 @@ Proposed workspace structure
   - `crates/toolbox-core`
   - `crates/toolbox-registry`
   - `crates/toolbox-shell`
-  - `tools/calculator`
+  - `crates/tools/calculator`
   - `xtask`
 - `Trunk.toml`
   Shell build configuration for the WASM app.
@@ -39,7 +39,7 @@ Crate responsibilities
   - registry loading and search/recent state
   - tool host component, loading/error boundaries
   - JS loader shim integration for mounted tools
-- `tools/calculator`
+- `crates/tools/calculator`
   First example tool crate:
   - calculator state + reducer logic
   - Leptos UI mounted through the shared tool contract
@@ -66,9 +66,9 @@ Likely file organization
 - `crates/toolbox-shell/src/state/search.rs`
 - `crates/toolbox-shell/src/state/recent.rs`
 - `crates/toolbox-shell/src/runtime/loader.rs`
-- `tools/calculator/src/lib.rs`
-- `tools/calculator/src/state.rs`
-- `tools/calculator/src/view.rs`
+- `crates/tools/calculator/src/lib.rs`
+- `crates/tools/calculator/src/state.rs`
+- `crates/tools/calculator/src/view.rs`
 - `xtask/src/main.rs`
 
 Shared type boundaries

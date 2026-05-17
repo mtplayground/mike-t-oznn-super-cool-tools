@@ -2,7 +2,7 @@
 members = [
     "crates/toolbox-core",
     "crates/toolbox-shell",
-    "tools/calculator",
+    "crates/tools/calculator",
     "xtask",
 ]
 resolver = "2"

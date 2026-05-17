@@ -254,8 +254,8 @@ mod tests {
                 "A simple calculator tool.",
                 "/assets/calculator.png",
             ),
-            crate_path: "tools/calculator".to_owned(),
-            entry_symbol: "mount_calculator".to_owned(),
+            crate_path: "crates/tools/calculator".to_owned(),
+            entry_symbol: "mount".to_owned(),
             wasm_url: "/tools/calculator/calculator_bg.wasm".to_owned(),
         }
     }
@@ -267,7 +267,7 @@ mod tests {
         assert!(shim.contains("import init, * as bindings from \"./calculator.js\";"));
         assert!(shim.contains("export { init as default };"));
         assert!(shim.contains("export function mount(...args) {"));
-        assert!(shim.contains("bindings[\"mount_calculator\"]"));
+        assert!(shim.contains("bindings[\"mount\"]"));
         assert!(shim.contains("export function unmount(...args) {"));
     }
 }
