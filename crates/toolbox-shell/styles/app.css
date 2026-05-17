@@ -55,4 +55,28 @@
   .shell-metric-value {
     @apply mt-3 block text-3xl font-semibold tracking-tight text-white;
   }
+
+  .tool-card {
+    @apply toolbox-panel flex min-h-[22rem] flex-col overflow-hidden border-white/10 bg-slate-900/50 transition duration-200 hover:-translate-y-1 hover:border-cyan-400/35 hover:bg-slate-900/80 hover:shadow-[0_28px_100px_rgba(34,211,238,0.14)];
+  }
+
+  .tool-card-thumbnail {
+    @apply relative h-44 overflow-hidden border-b border-white/10 bg-gradient-to-br from-slate-800 via-slate-900 to-cyan-950;
+  }
+
+  .tool-card-thumbnail-overlay {
+    @apply absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-slate-950/90 via-slate-950/55 to-transparent px-4 pb-4 pt-10;
+  }
+
+  .tool-card-category {
+    @apply rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-100;
+  }
+
+  .tool-card-arrow {
+    @apply text-lg text-slate-500 transition duration-200 group-hover:text-cyan-200;
+  }
+
+  .tool-card-tag {
+    @apply rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-300;
+  }
 }

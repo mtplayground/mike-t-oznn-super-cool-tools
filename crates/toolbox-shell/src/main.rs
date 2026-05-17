@@ -12,6 +12,8 @@ use leptos_router::{
 };
 #[cfg(target_arch = "wasm32")]
 use registry::{category_from_slug, provide_registry_context, use_registry_context};
+#[cfg(target_arch = "wasm32")]
+use toolbox_core::{Category, ToolMeta};
 
 #[cfg(target_arch = "wasm32")]
 fn main() {
@@ -160,81 +162,195 @@ fn HomePage() -> impl IntoView {
     let registry = use_registry_context();
 
     view! {
-        <section class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <section class="flex flex-col gap-8">
             <div class="flex flex-col gap-5">
                 <p class="text-sm font-semibold uppercase tracking-[0.32em] text-cyan-300">
-                    "Shell overview"
+                    "Tool index"
                 </p>
                 <h1 class="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                    "Hello toolbox"
+                    "Browse every tool by category"
                 </h1>
                 <p class="max-w-2xl text-base leading-7 text-slate-300">
-                    "The shell now uses leptos_router with a persistent frame, category routes, tool routes, and a not-found view."
+                    "The index page groups registered tools by category and links each card directly to its tool route."
                 </p>
                 <div class="flex flex-wrap gap-3">
                     <A href="/category/math" attr:class="shell-pill">
                         "Browse math tools"
                     </A>
                     <A href="/tools/calculator" attr:class="shell-pill">
-                        "Open tool placeholder"
+                        "Open calculator"
                     </A>
                 </div>
+            </div>
 
-                {move || match registry.clone() {
+            {move || match registry.clone() {
+                None => view! {
+                    <p class="text-sm text-amber-200">
+                        "Registry context is unavailable."
+                    </p>
+                }
+                    .into_any(),
+                Some(registry) => match registry.0.get() {
                     None => view! {
-                        <p class="text-sm text-amber-200">
-                            "Registry context is unavailable."
-                        </p>
-                    }
-                        .into_any(),
-                    Some(registry) => match registry.0.get() {
-                        None => view! {
+                        <div class="toolbox-panel flex min-h-[16rem] items-center justify-center p-8">
                             <p class="text-sm text-slate-400">
                                 "Loading runtime registry..."
                             </p>
-                        }
-                            .into_any(),
-                        Some(Err(error)) => view! {
+                        </div>
+                    }
+                        .into_any(),
+                    Some(Err(error)) => view! {
+                        <div class="toolbox-panel flex min-h-[16rem] items-center justify-center p-8">
                             <p class="text-sm text-rose-300">{error.to_string()}</p>
-                        }
-                            .into_any(),
-                        Some(Ok(catalog)) => {
-                            let tool_count = catalog.tools().len();
-                            let utility_count = catalog.by_tag("utility").len();
-                            let matched = catalog.filter("calculator").len();
+                        </div>
+                    }
+                        .into_any(),
+                    Some(Ok(catalog)) => {
+                        let total_tools = catalog.tools().len();
+                        let category_count = all_categories().len();
 
-                            view! {
-                                <div class="grid gap-3 sm:grid-cols-3">
-                                    <div class="toolbox-panel p-4">
-                                        <span class="shell-metric-label">"Loaded tools"</span>
-                                        <strong class="shell-metric-value">{tool_count}</strong>
-                                    </div>
-                                    <div class="toolbox-panel p-4">
-                                        <span class="shell-metric-label">"Utility tag matches"</span>
-                                        <strong class="shell-metric-value">{utility_count}</strong>
-                                    </div>
-                                    <div class="toolbox-panel p-4">
-                                        <span class="shell-metric-label">"Full-text \"calculator\""</span>
-                                        <strong class="shell-metric-value">{matched}</strong>
-                                    </div>
+                        view! {
+                            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                <div class="toolbox-panel p-4">
+                                    <span class="shell-metric-label">"Loaded tools"</span>
+                                    <strong class="shell-metric-value">{total_tools}</strong>
                                 </div>
-                            }
-                                .into_any()
+                                <div class="toolbox-panel p-4">
+                                    <span class="shell-metric-label">"Categories"</span>
+                                    <strong class="shell-metric-value">{category_count}</strong>
+                                </div>
+                                <div class="toolbox-panel p-4">
+                                    <span class="shell-metric-label">"Utility tag matches"</span>
+                                    <strong class="shell-metric-value">{catalog.by_tag("utility").len()}</strong>
+                                </div>
+                                <div class="toolbox-panel p-4">
+                                    <span class="shell-metric-label">"Full-text \"calculator\""</span>
+                                    <strong class="shell-metric-value">{catalog.filter("calculator").len()}</strong>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-8">
+                                <For
+                                    each=all_categories
+                                    key=|category| category.as_str().to_owned()
+                                    children=move |category| {
+                                        let tools = catalog.by_category(&category);
+                                        view! {
+                                            <CategorySection category=category tools=tools />
+                                        }
+                                    }
+                                />
+                            </div>
                         }
-                    },
-                }}
+                            .into_any()
+                    }
+                },
+            }}
+        </section>
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[component]
+fn CategorySection(category: Category, tools: Vec<ToolMeta>) -> impl IntoView {
+    let category_label = category.label().to_owned();
+    let category_slug = category.as_str().to_owned();
+    let tool_count = tools.len();
+    let has_tools = tool_count > 0;
+
+    view! {
+        <section class="flex flex-col gap-5">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div class="flex flex-col gap-2">
+                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+                        {format!("{} tool{}", tool_count, if tool_count == 1 { "" } else { "s" })}
+                    </p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                        {category_label.clone()}
+                    </h2>
+                </div>
+
+                <A
+                    href=format!("/category/{category_slug}")
+                    attr:class="text-sm font-medium text-cyan-200 transition hover:text-cyan-100"
+                >
+                    "Open category"
+                </A>
             </div>
 
-            <aside class="toolbox-panel flex flex-col gap-4 p-6">
-                <h2 class="text-lg font-semibold text-white">"Current routes"</h2>
-                <ul class="space-y-3 text-sm text-slate-300">
-                    <li><code class="text-cyan-200">"/"</code>" home shell landing page"</li>
-                    <li><code class="text-cyan-200">"/category/:slug"</code>" category placeholder page"</li>
-                    <li><code class="text-cyan-200">"/tools/:slug"</code>" tool placeholder slot"</li>
-                    <li>"fallback route for unknown pages"</li>
-                </ul>
-            </aside>
+            {if has_tools {
+                view! {
+                    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        <For
+                            each=move || tools.clone()
+                            key=|tool| tool.slug.clone()
+                            children=move |tool| {
+                                view! { <ToolCard tool=tool /> }
+                            }
+                        />
+                    </div>
+                }
+                    .into_any()
+            } else {
+                view! {
+                    <div class="rounded-3xl border border-dashed border-white/10 bg-slate-900/20 px-5 py-8 text-sm text-slate-400">
+                        {format!("No {} tools are registered yet.", category_label.to_ascii_lowercase())}
+                    </div>
+                }
+                    .into_any()
+            }}
         </section>
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[component]
+fn ToolCard(tool: ToolMeta) -> impl IntoView {
+    let tool_link = format!("/tools/{}", tool.slug);
+    let thumbnail_alt = format!("{} thumbnail", tool.name);
+    let short_description = short_description(&tool.description, 88);
+    let visible_tags = tool.tags.iter().take(3).cloned().collect::<Vec<_>>();
+
+    view! {
+        <A href=tool_link attr:class="tool-card group">
+            <div class="tool-card-thumbnail">
+                <img
+                    src=tool.thumbnail.clone()
+                    alt=thumbnail_alt
+                    class="h-full w-full object-cover"
+                    loading="lazy"
+                />
+                <div class="tool-card-thumbnail-overlay">
+                    <span class="tool-card-category">{tool.category.label()}</span>
+                </div>
+            </div>
+
+            <div class="flex flex-1 flex-col gap-3 p-5">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="min-w-0">
+                        <h3 class="text-lg font-semibold tracking-tight text-white transition group-hover:text-cyan-100">
+                            {tool.name.clone()}
+                        </h3>
+                        <p class="mt-1 text-sm text-slate-400">{short_description}</p>
+                    </div>
+                    <span class="tool-card-arrow" aria-hidden="true">
+                        "↗"
+                    </span>
+                </div>
+
+                <div class="mt-auto flex flex-wrap gap-2">
+                    <For
+                        each=move || visible_tags.clone()
+                        key=|tag| tag.clone()
+                        children=move |tag| {
+                            view! {
+                                <span class="tool-card-tag">{tag}</span>
+                            }
+                        }
+                    />
+                </div>
+            </div>
+        </A>
     }
 }
 
@@ -496,4 +612,28 @@ fn format_segment(segment: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+#[cfg(target_arch = "wasm32")]
+fn all_categories() -> Vec<Category> {
+    vec![
+        Category::Utilities,
+        Category::Math,
+        Category::Text,
+        Category::Developer,
+        Category::Media,
+        Category::Productivity,
+    ]
+}
+
+#[cfg(target_arch = "wasm32")]
+fn short_description(description: &str, max_chars: usize) -> String {
+    let trimmed = description.trim();
+    if trimmed.chars().count() <= max_chars {
+        return trimmed.to_owned();
+    }
+
+    let mut shortened = trimmed.chars().take(max_chars.saturating_sub(1)).collect::<String>();
+    shortened.push('…');
+    shortened
 }
