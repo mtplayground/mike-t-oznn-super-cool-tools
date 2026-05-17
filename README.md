@@ -7,7 +7,7 @@ shell and individual tool crates.
 
 - `crates/toolbox-core`: shared library crate for core types and abstractions
 - `crates/toolbox-shell`: application crate for the shell frontend/runtime
-- `tools/calculator`: first tool crate reserved for the calculator tool
+- `crates/tools/calculator`: first tool crate reserved for the calculator tool
 
 ## Getting started
 
