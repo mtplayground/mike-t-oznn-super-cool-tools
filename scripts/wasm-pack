@@ -1,0 +1,101 @@
+#!/usr/bin/env sh
+set -eu
+
+usage() {
+  echo "usage: wasm-pack build <crate-path> --target web --out-dir <dir> --out-name <name> [--release]" >&2
+  exit 1
+}
+
+if [ "${1:-}" = "" ]; then
+  usage
+fi
+
+SELF_PATH=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/$(basename -- "$0")
+FOUND_WASM_PACK=$(command -v wasm-pack 2>/dev/null || true)
+
+if [ -n "$FOUND_WASM_PACK" ] && [ "$FOUND_WASM_PACK" != "$SELF_PATH" ]; then
+  exec "$FOUND_WASM_PACK" "$@"
+fi
+
+COMMAND=$1
+shift
+
+if [ "$COMMAND" != "build" ]; then
+  usage
+fi
+
+CRATE_PATH=""
+TARGET=""
+OUT_DIR=""
+OUT_NAME=""
+RELEASE_FLAG=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --target)
+      [ "$#" -ge 2 ] || usage
+      TARGET=$2
+      shift 2
+      ;;
+    --out-dir)
+      [ "$#" -ge 2 ] || usage
+      OUT_DIR=$2
+      shift 2
+      ;;
+    --out-name)
+      [ "$#" -ge 2 ] || usage
+      OUT_NAME=$2
+      shift 2
+      ;;
+    --release)
+      RELEASE_FLAG=--release
+      shift 1
+      ;;
+    -*)
+      echo "unsupported wasm-pack option: $1" >&2
+      exit 1
+      ;;
+    *)
+      if [ -z "$CRATE_PATH" ]; then
+        CRATE_PATH=$1
+        shift 1
+      else
+        echo "unexpected argument: $1" >&2
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+[ -n "$CRATE_PATH" ] || usage
+[ "$TARGET" = "web" ] || { echo "only --target web is supported by the repo shim" >&2; exit 1; }
+[ -n "$OUT_DIR" ] || usage
+[ -n "$OUT_NAME" ] || usage
+
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+MANIFEST_PATH="$ROOT_DIR/$CRATE_PATH/Cargo.toml"
+[ -f "$MANIFEST_PATH" ] || { echo "missing manifest: $MANIFEST_PATH" >&2; exit 1; }
+
+PACKAGE_NAME=$(sed -n 's/^name = "\(.*\)"$/\1/p' "$MANIFEST_PATH" | head -n 1)
+[ -n "$PACKAGE_NAME" ] || { echo "unable to determine package name from $MANIFEST_PATH" >&2; exit 1; }
+
+TARGET_DIR="$ROOT_DIR/target"
+PROFILE_DIR=debug
+if [ -n "$RELEASE_FLAG" ]; then
+  PROFILE_DIR=release
+fi
+
+PATH=/usr/local/cargo/bin:$PATH cargo build --lib --target wasm32-unknown-unknown --manifest-path "$MANIFEST_PATH" $RELEASE_FLAG
+
+ARTIFACT_NAME=$(printf '%s' "$PACKAGE_NAME" | tr '-' '_')
+WASM_INPUT="$TARGET_DIR/wasm32-unknown-unknown/$PROFILE_DIR/$ARTIFACT_NAME.wasm"
+[ -f "$WASM_INPUT" ] || { echo "missing compiled wasm artifact: $WASM_INPUT" >&2; exit 1; }
+
+WASM_BINDGEN_BIN=$(command -v wasm-bindgen 2>/dev/null || true)
+if [ -z "$WASM_BINDGEN_BIN" ]; then
+  WASM_BINDGEN_BIN=$(find "$HOME/.cache/trunk" -maxdepth 3 -path '*/wasm-bindgen' -type f 2>/dev/null | sort | tail -n 1)
+fi
+[ -n "$WASM_BINDGEN_BIN" ] || { echo "wasm-bindgen binary not found" >&2; exit 1; }
+
+mkdir -p "$OUT_DIR"
+"$WASM_BINDGEN_BIN" --target web --out-dir "$OUT_DIR" --out-name "$OUT_NAME" "$WASM_INPUT"

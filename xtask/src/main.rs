@@ -1,0 +1,188 @@
+#![forbid(unsafe_code)]
+
+use std::env;
+use std::ffi::OsStr;
+use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
+use std::process::{Command, ExitStatus};
+
+use toolbox_core::{RegisteredTool, ToolRegistry};
+
+type DynError = Box<dyn std::error::Error>;
+type Result<T> = std::result::Result<T, DynError>;
+
+fn main() {
+    if let Err(error) = run() {
+        eprintln!("{error}");
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<()> {
+    let mut args = env::args().skip(1);
+    let Some(command) = args.next() else {
+        return Err("expected a subcommand, e.g. `cargo xtask build`".into());
+    };
+
+    match command.as_str() {
+        "build" => build(),
+        other => Err(format!("unsupported xtask subcommand `{other}`").into()),
+    }
+}
+
+fn build() -> Result<()> {
+    let root = workspace_root()?;
+    let registry = ToolRegistry::parse_file(root.join("tools-registry.toml"))?;
+    let dist_dir = root.join("dist");
+    let tools_dist_dir = dist_dir.join("tools");
+    let tools_build_dir = root.join("target").join("xtask").join("tools");
+
+    if tools_dist_dir.exists() {
+        fs::remove_dir_all(&tools_dist_dir)?;
+    }
+
+    if tools_build_dir.exists() {
+        fs::remove_dir_all(&tools_build_dir)?;
+    }
+
+    fs::create_dir_all(&dist_dir)?;
+    fs::create_dir_all(&tools_dist_dir)?;
+    fs::create_dir_all(&tools_build_dir)?;
+
+    let mut trunk_command = command_in_root("trunk", ["build", "--config", "Trunk.toml"], &root);
+    trunk_command.env("NO_COLOR", "false");
+    run_checked(trunk_command, "trunk build")?;
+
+    for tool in &registry.tools {
+        build_tool(&root, &tools_build_dir, &tools_dist_dir, tool)?;
+    }
+
+    let registry_json_path = dist_dir.join("registry.json");
+    let registry_json = serde_json::to_string_pretty(&registry)?;
+    fs::write(registry_json_path, registry_json)?;
+
+    Ok(())
+}
+
+fn build_tool(
+    root: &Path,
+    tools_build_dir: &Path,
+    tools_dist_dir: &Path,
+    tool: &RegisteredTool,
+) -> Result<()> {
+    let package_dir = tools_build_dir.join(&tool.meta.slug);
+    let final_dir = tools_dist_dir.join(&tool.meta.slug);
+
+    fs::create_dir_all(&package_dir)?;
+    fs::create_dir_all(&final_dir)?;
+
+    let wasm_pack = wasm_pack_executable(root);
+    run_checked(
+        command_in_root(
+            &wasm_pack,
+            [
+                "build",
+                tool.crate_path.as_str(),
+                "--target",
+                "web",
+                "--out-dir",
+                path_to_str(&package_dir)?,
+                "--out-name",
+                tool.meta.slug.as_str(),
+            ],
+            root,
+        ),
+        &format!("wasm-pack build for `{}`", tool.meta.slug),
+    )?;
+
+    copy_dir_contents(&package_dir, &final_dir)?;
+    ensure_expected_wasm_exists(&final_dir, tool)?;
+
+    Ok(())
+}
+
+fn ensure_expected_wasm_exists(final_dir: &Path, tool: &RegisteredTool) -> Result<()> {
+    let file_name = tool
+        .wasm_url
+        .rsplit('/')
+        .next()
+        .ok_or_else(|| format!("tool `{}` has an invalid wasm_url", tool.meta.slug))?;
+    let artifact_path = final_dir.join(file_name);
+
+    if artifact_path.exists() {
+        return Ok(());
+    }
+
+    Err(format!(
+        "tool `{}` expected wasm artifact `{}` to exist after packaging",
+        tool.meta.slug,
+        artifact_path.display()
+    )
+    .into())
+}
+
+fn wasm_pack_executable(root: &Path) -> String {
+    let local_shim = root.join("scripts").join("wasm-pack");
+
+    if local_shim.exists() {
+        return local_shim.display().to_string();
+    }
+
+    "wasm-pack".to_owned()
+}
+
+fn command_in_root<I, S>(program: &str, args: I, root: &Path) -> Command
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
+{
+    let mut command = Command::new(program);
+    command.args(args);
+    command.current_dir(root);
+    command.env("PATH", format!("/usr/local/cargo/bin:{}", env::var("PATH").unwrap_or_default()));
+    command
+}
+
+fn copy_dir_contents(source: &Path, destination: &Path) -> Result<()> {
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let entry_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        let metadata = entry.metadata()?;
+
+        if metadata.is_dir() {
+            fs::create_dir_all(&destination_path)?;
+            copy_dir_contents(&entry_path, &destination_path)?;
+        } else if metadata.is_file() {
+            fs::copy(&entry_path, &destination_path)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn workspace_root() -> Result<PathBuf> {
+    Ok(PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .ok_or("failed to determine workspace root")?
+        .to_path_buf())
+}
+
+fn run_checked(mut command: Command, context: &str) -> Result<()> {
+    let status = command.status()?;
+    ensure_success(status, context)
+}
+
+fn ensure_success(status: ExitStatus, context: &str) -> Result<()> {
+    if status.success() {
+        return Ok(());
+    }
+
+    Err(format!("{context} failed with status {status}").into())
+}
+
+fn path_to_str(path: &Path) -> Result<&str> {
+    path.to_str()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "non-utf8 path").into())
+}
