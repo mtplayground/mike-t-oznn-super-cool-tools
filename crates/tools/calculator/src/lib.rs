@@ -116,33 +116,33 @@ fn render_markup(host: &HtmlElement) {
             </div>
             <div class="rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-right">
               <div class="text-xs uppercase tracking-[0.22em] text-slate-500">Display</div>
-              <div data-role="display" class="mt-2 min-w-[10rem] text-3xl font-semibold tracking-tight text-white">0</div>
+              <div data-role="display" aria-label="Calculator display" aria-live="polite" class="mt-2 min-w-[10rem] text-3xl font-semibold tracking-tight text-white">0</div>
             </div>
           </div>
 
           <div class="grid grid-cols-4 gap-3">
-            <button type="button" data-role="clear" data-input="clear" class="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/20">AC</button>
-            <button type="button" data-input="backspace" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10">⌫</button>
-            <button type="button" data-input="divide" class="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/20">÷</button>
-            <button type="button" data-input="multiply" class="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/20">×</button>
+            <button type="button" aria-label="All clear" data-role="clear" data-input="clear" class="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-400/20">AC</button>
+            <button type="button" aria-label="Backspace" data-input="backspace" class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10">⌫</button>
+            <button type="button" aria-label="Divide" data-input="divide" class="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/20">÷</button>
+            <button type="button" aria-label="Multiply" data-input="multiply" class="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/20">×</button>
 
-            <button type="button" data-input="digit-7" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">7</button>
-            <button type="button" data-input="digit-8" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">8</button>
-            <button type="button" data-input="digit-9" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">9</button>
-            <button type="button" data-input="subtract" class="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/20">−</button>
+            <button type="button" aria-label="7" data-input="digit-7" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">7</button>
+            <button type="button" aria-label="8" data-input="digit-8" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">8</button>
+            <button type="button" aria-label="9" data-input="digit-9" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">9</button>
+            <button type="button" aria-label="Subtract" data-input="subtract" class="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/20">−</button>
 
-            <button type="button" data-input="digit-4" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">4</button>
-            <button type="button" data-input="digit-5" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">5</button>
-            <button type="button" data-input="digit-6" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">6</button>
-            <button type="button" data-input="add" class="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/20">+</button>
+            <button type="button" aria-label="4" data-input="digit-4" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">4</button>
+            <button type="button" aria-label="5" data-input="digit-5" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">5</button>
+            <button type="button" aria-label="6" data-input="digit-6" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">6</button>
+            <button type="button" aria-label="Add" data-input="add" class="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-400/20">+</button>
 
-            <button type="button" data-input="digit-1" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">1</button>
-            <button type="button" data-input="digit-2" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">2</button>
-            <button type="button" data-input="digit-3" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">3</button>
-            <button type="button" data-input="equals" class="row-span-2 rounded-[1.5rem] border border-emerald-400/25 bg-emerald-400/15 px-4 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/25">=</button>
+            <button type="button" aria-label="1" data-input="digit-1" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">1</button>
+            <button type="button" aria-label="2" data-input="digit-2" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">2</button>
+            <button type="button" aria-label="3" data-input="digit-3" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">3</button>
+            <button type="button" aria-label="Equals" data-input="equals" class="row-span-2 rounded-[1.5rem] border border-emerald-400/25 bg-emerald-400/15 px-4 py-3 text-sm font-semibold text-emerald-100 transition hover:bg-emerald-400/25">=</button>
 
-            <button type="button" data-input="digit-0" class="col-span-2 rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">0</button>
-            <button type="button" data-input="decimal" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">.</button>
+            <button type="button" aria-label="0" data-input="digit-0" class="col-span-2 rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">0</button>
+            <button type="button" aria-label="Decimal point" data-input="decimal" class="rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-slate-800">.</button>
           </div>
         </section>
         "#,
