@@ -112,6 +112,38 @@
     @apply mt-1 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200;
   }
 
+  .tool-host {
+    @apply mt-3 min-h-[18rem] rounded-3xl border border-white/10 bg-slate-950/40 p-5;
+  }
+
+  .tool-host-container {
+    @apply min-h-[14rem];
+  }
+
+  .tool-host-skeleton {
+    @apply flex min-h-[14rem] flex-col justify-center gap-4;
+  }
+
+  .tool-host-skeleton-bar {
+    @apply h-4 rounded-full bg-white/10;
+  }
+
+  .tool-host-skeleton-bar-lg {
+    @apply w-2/3;
+  }
+
+  .tool-host-skeleton-bar-sm {
+    @apply w-1/3;
+  }
+
+  .tool-host-error {
+    @apply flex min-h-[14rem] flex-col justify-center gap-3 rounded-2xl border border-rose-400/30 bg-rose-400/10 px-5 py-6 text-rose-100;
+  }
+
+  .tool-host-error-label {
+    @apply text-xs font-semibold uppercase tracking-[0.24em] text-rose-200;
+  }
+
   .tool-card {
     @apply toolbox-panel flex min-h-[22rem] flex-col overflow-hidden border-white/10 bg-slate-900/50 transition duration-200 hover:-translate-y-1 hover:border-cyan-400/35 hover:bg-slate-900/80 hover:shadow-[0_28px_100px_rgba(34,211,238,0.14)];
   }

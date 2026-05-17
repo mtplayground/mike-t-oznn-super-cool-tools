@@ -11,6 +11,10 @@ path = "src/main.rs"
 [dependencies]
 console_error_panic_hook = "0.1.7"
 gloo-net = "0.6.0"
+js-sys = "0.3.82"
 leptos = { version = "0.8.11", features = ["csr"] }
 leptos_router = "0.8.11"
 toolbox-core = { path = "../toolbox-core" }
+wasm-bindgen = "0.2.121"
+wasm-bindgen-futures = "0.4.55"
+web-sys = { version = "0.3.82", features = ["HtmlElement"] }
