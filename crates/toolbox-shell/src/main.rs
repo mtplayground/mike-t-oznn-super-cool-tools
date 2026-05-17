@@ -14,7 +14,12 @@ use leptos_router::{
 #[cfg(target_arch = "wasm32")]
 use registry::{category_from_slug, provide_registry_context, use_registry_context};
 #[cfg(target_arch = "wasm32")]
-use toolbox_core::{Category, ToolMeta};
+use toolbox_core::{Category, Context, ToolMeta};
+
+#[cfg(target_arch = "wasm32")]
+const RECENT_TOOLS_KEY: &str = "recent-tools";
+#[cfg(target_arch = "wasm32")]
+const RECENT_TOOLS_LIMIT: usize = 6;
 
 #[cfg(target_arch = "wasm32")]
 fn main() {
@@ -315,6 +320,14 @@ fn Breadcrumbs() -> impl IntoView {
 #[component]
 fn HomePage() -> impl IntoView {
     let registry = use_registry_context();
+    let recent_context = recent_tools_context();
+    let (recent_slugs, set_recent_slugs) = signal(Vec::<String>::new());
+
+    Effect::new(move |_| {
+        set_recent_slugs.set(
+            load_recent_tool_slugs(&recent_context).unwrap_or_default(),
+        );
+    });
 
     view! {
         <section class="flex flex-col gap-8">
@@ -363,6 +376,11 @@ fn HomePage() -> impl IntoView {
                     Some(Ok(catalog)) => {
                         let total_tools = catalog.tools().len();
                         let category_count = all_categories().len();
+                        let recent_tools = recent_slugs
+                            .get()
+                            .into_iter()
+                            .filter_map(|slug| catalog.by_slug(&slug))
+                            .collect::<Vec<_>>();
 
                         view! {
                             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -384,6 +402,12 @@ fn HomePage() -> impl IntoView {
                                 </div>
                             </div>
 
+                            {if recent_tools.is_empty() {
+                                ().into_any()
+                            } else {
+                                view! { <RecentToolsStrip tools=recent_tools /> }.into_any()
+                            }}
+
                             <div class="flex flex-col gap-8">
                                 <For
                                     each=all_categories
@@ -401,6 +425,55 @@ fn HomePage() -> impl IntoView {
                     }
                 },
             }}
+        </section>
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[component]
+fn RecentToolsStrip(tools: Vec<ToolMeta>) -> impl IntoView {
+    view! {
+        <section class="flex flex-col gap-4">
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div class="flex flex-col gap-2">
+                    <p class="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+                        "Recent"
+                    </p>
+                    <h2 class="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                        "Jump back into recently used tools"
+                    </h2>
+                </div>
+                <span class="text-sm text-slate-400">
+                    {format!("{} saved tool{}", tools.len(), if tools.len() == 1 { "" } else { "s" })}
+                </span>
+            </div>
+
+            <div class="recent-strip">
+                <For
+                    each=move || tools.clone()
+                    key=|tool| tool.slug.clone()
+                    children=move |tool| {
+                        let href = format!("/tools/{}", tool.slug);
+                        let short_description = short_description(&tool.description, 64);
+
+                        view! {
+                            <A href=href attr:class="recent-tool">
+                                <img
+                                    src=tool.thumbnail.clone()
+                                    alt=format!("{} thumbnail", tool.name)
+                                    class="recent-tool-thumbnail"
+                                    loading="lazy"
+                                />
+                                <div class="min-w-0">
+                                    <p class="recent-tool-title">{tool.name.clone()}</p>
+                                    <p class="recent-tool-meta">{tool.category.label()}</p>
+                                    <p class="mt-2 text-sm text-slate-400">{short_description}</p>
+                                </div>
+                            </A>
+                        }
+                    }
+                />
+            </div>
         </section>
     }
 }
@@ -654,11 +727,30 @@ fn UnknownCategoryPage(slug: String) -> impl IntoView {
 fn ToolPage() -> impl IntoView {
     let params = use_params_map();
     let registry = use_registry_context();
+    let registry_for_recent = registry.clone();
+    let recent_context = recent_tools_context();
     let slug = move || {
         params
             .with(|params| params.get("slug"))
             .unwrap_or_else(|| "unknown".to_owned())
     };
+
+    Effect::new(move |_| {
+        let Some(registry) = registry_for_recent.clone() else {
+            return;
+        };
+
+        let Some(Ok(catalog)) = registry.0.get() else {
+            return;
+        };
+
+        let current_slug = slug();
+        let Some(tool) = catalog.by_slug(&current_slug) else {
+            return;
+        };
+
+        let _ = record_recent_tool_visit(&recent_context, &tool.slug);
+    });
 
     view! {
         <section class="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -847,5 +939,136 @@ fn category_description(category: &Category) -> &'static str {
         Category::Developer => "Utilities for inspecting, formatting, and debugging developer data.",
         Category::Media => "Tools for working with visual, audio, and other media assets.",
         Category::Productivity => "Workflow-oriented tools designed to speed up repetitive work.",
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn recent_tools_context() -> Context {
+    Context::new("toolbox-shell")
+}
+
+#[cfg(target_arch = "wasm32")]
+fn load_recent_tool_slugs(context: &Context) -> Result<Vec<String>, toolbox_core::StorageError> {
+    Ok(context
+        .get_local_storage_item(RECENT_TOOLS_KEY)?
+        .map(|value| parse_recent_tool_slugs(&value))
+        .unwrap_or_default())
+}
+
+#[cfg(target_arch = "wasm32")]
+fn record_recent_tool_visit(
+    context: &Context,
+    slug: &str,
+) -> Result<(), toolbox_core::StorageError> {
+    let existing = load_recent_tool_slugs(context)?;
+    let recent = merge_recent_tool_slugs(&existing, slug, RECENT_TOOLS_LIMIT);
+
+    if recent.is_empty() {
+        context.remove_local_storage_item(RECENT_TOOLS_KEY)
+    } else {
+        context.set_local_storage_item(
+            RECENT_TOOLS_KEY,
+            &serialize_recent_tool_slugs(&recent),
+        )
+    }
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn parse_recent_tool_slugs(value: &str) -> Vec<String> {
+    value
+        .lines()
+        .map(str::trim)
+        .filter(|slug| !slug.is_empty())
+        .map(str::to_owned)
+        .collect()
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn serialize_recent_tool_slugs(slugs: &[String]) -> String {
+    slugs.join("\n")
+}
+
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn merge_recent_tool_slugs(existing: &[String], slug: &str, limit: usize) -> Vec<String> {
+    let trimmed = slug.trim();
+    if trimmed.is_empty() || limit == 0 {
+        return Vec::new();
+    }
+
+    let mut merged = Vec::with_capacity(limit);
+    merged.push(trimmed.to_owned());
+    merged.extend(
+        existing
+            .iter()
+            .filter(|existing_slug| !existing_slug.eq_ignore_ascii_case(trimmed))
+            .take(limit.saturating_sub(1))
+            .cloned(),
+    );
+    merged
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{merge_recent_tool_slugs, parse_recent_tool_slugs, serialize_recent_tool_slugs};
+
+    #[test]
+    fn parses_recent_tool_slugs_from_storage() {
+        let slugs = parse_recent_tool_slugs("calculator\n\njson-pretty\n");
+
+        assert_eq!(slugs, vec!["calculator".to_owned(), "json-pretty".to_owned()]);
+    }
+
+    #[test]
+    fn serializes_recent_tool_slugs_for_storage() {
+        let encoded = serialize_recent_tool_slugs(&[
+            "calculator".to_owned(),
+            "json-pretty".to_owned(),
+        ]);
+
+        assert_eq!(encoded, "calculator\njson-pretty");
+    }
+
+    #[test]
+    fn prepends_recent_tool_and_deduplicates() {
+        let merged = merge_recent_tool_slugs(
+            &[
+                "calculator".to_owned(),
+                "json-pretty".to_owned(),
+                "unit-converter".to_owned(),
+            ],
+            "json-pretty",
+            4,
+        );
+
+        assert_eq!(
+            merged,
+            vec![
+                "json-pretty".to_owned(),
+                "calculator".to_owned(),
+                "unit-converter".to_owned(),
+            ]
+        );
+    }
+
+    #[test]
+    fn enforces_recent_tool_limit() {
+        let merged = merge_recent_tool_slugs(
+            &[
+                "calculator".to_owned(),
+                "json-pretty".to_owned(),
+                "unit-converter".to_owned(),
+            ],
+            "color-picker",
+            3,
+        );
+
+        assert_eq!(
+            merged,
+            vec![
+                "color-picker".to_owned(),
+                "calculator".to_owned(),
+                "json-pretty".to_owned(),
+            ]
+        );
     }
 }
