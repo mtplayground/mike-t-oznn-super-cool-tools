@@ -30,6 +30,10 @@ web-sys = { version = "0.3.82", features = ["HtmlElement"] }
 The important part is `crate-type = ["cdylib", "rlib"]`, which lets the tool
 build to WebAssembly for browser loading.
 
+If a tool introduces utility classes from a new top-level source path, add that
+path to `tailwind.config.js` `content` so Tailwind does not purge the classes
+from the production CSS bundle.
+
 ## 2. Implement the loader contract
 
 Each tool crate must export the functions expected by the shell loader:
