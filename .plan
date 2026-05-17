@@ -1,117 +1,46 @@
 Architecture plan for `mike-t-oznn-super-cool-tools`
 
-Proposed workspace structure
+Issue set
 
-- `Cargo.toml`
-  Root workspace manifest. Members should include:
-  - `crates/toolbox-core`
-  - `crates/toolbox-registry`
-  - `crates/toolbox-shell`
-  - `crates/tools/calculator`
-  - `xtask`
-- `Trunk.toml`
-  Shell build configuration for the WASM app.
-- `tools-registry.toml`
-  Declarative source of truth for installed tools.
-- `assets/`
-  Shared static assets such as thumbnails.
-- `docs/adding-a-tool.md`
-  Developer guide from issue #21.
-- `e2e/`
-  Playwright smoke test and support files.
+- `#43 Include tool crates in Tailwind content scan`
 
-Crate responsibilities
+Module structure and file organization
 
-- `toolbox-core`
-  Defines the stable interface between shell and tools:
-  - `ToolId`, `ToolMeta`, `ToolCategory`
-  - `ToolError`, `ToolResult`
-  - `Tool` trait for metadata and mount/bootstrap hooks
-  - shared serde-enabled types used by registry + runtime
-- `toolbox-registry`
-  Owns the TOML schema, parsing, validation, and runtime loader helpers:
-  - schema structs for `tools-registry.toml`
-  - validation of ids, routes, assets, and categories
-  - transformation from manifest records to runtime view models
-- `toolbox-shell`
-  Leptos frontend application:
-  - router, top-level layout, index/category/tool routes
-  - registry loading and search/recent state
-  - tool host component, loading/error boundaries
-  - JS loader shim integration for mounted tools
-- `crates/tools/calculator`
-  First example tool crate:
-  - calculator state + reducer logic
-  - Leptos UI mounted through the shared tool contract
-- `xtask`
-  Dev/build orchestration:
-  - build workspace crates in the right order
-  - run trunk build for the shell
-  - optionally validate registry and copy assets
-
-Likely file organization
-
-- `crates/toolbox-core/src/lib.rs`
-- `crates/toolbox-core/src/tool.rs`
-- `crates/toolbox-core/src/types.rs`
-- `crates/toolbox-registry/src/lib.rs`
-- `crates/toolbox-registry/src/schema.rs`
-- `crates/toolbox-registry/src/parser.rs`
-- `crates/toolbox-registry/src/runtime.rs`
-- `crates/toolbox-shell/src/main.rs`
-- `crates/toolbox-shell/src/app.rs`
-- `crates/toolbox-shell/src/routes.rs`
-- `crates/toolbox-shell/src/components/tool_card.rs`
-- `crates/toolbox-shell/src/components/tool_host.rs`
-- `crates/toolbox-shell/src/state/search.rs`
-- `crates/toolbox-shell/src/state/recent.rs`
-- `crates/toolbox-shell/src/runtime/loader.rs`
-- `crates/tools/calculator/src/lib.rs`
-- `crates/tools/calculator/src/state.rs`
-- `crates/tools/calculator/src/view.rs`
+- `tailwind.config.js`
+  Source of truth for Tailwind content scanning. This is the primary file for
+  the issue because the purge/content configuration currently covers the shell
+  but not tool crates.
+- `crates/toolbox-shell/styles/app.css`
+  Shared Tailwind entry stylesheet compiled by the Trunk pre-build hook.
+- `crates/tools/**`
+  Tool crates may embed Tailwind utility classes directly in Rust-rendered HTML.
+  The calculator in `crates/tools/calculator/src/lib.rs` is the current example.
 - `xtask/src/main.rs`
+  Build orchestrator used to regenerate the shell bundle and packaged tools via
+  `cargo xtask build`.
+- `docs/ADDING_A_TOOL.md`
+  Should mention that tool-crate Rust files need to stay within the Tailwind
+  content scan so utility classes are preserved in production CSS.
 
-Shared type boundaries
+Dependencies between issues
 
-- `toolbox-core` should not depend on Leptos router or Trunk specifics.
-- Registry records should deserialize into plain data structs first, then convert into validated runtime models.
-- The shell should consume runtime models, not raw TOML schema structs.
-- Tool-specific state stays inside each tool crate; cross-tool state is limited to discovery, routing, search, and recents.
-
-Issue dependency order
-
-- Foundation:
-  - #1 initializes the workspace and crate layout.
-  - #3 defines core contracts.
-  - #4 defines registry schema/parser.
-  - #5 adds `xtask build`.
-  - #15 scaffolds the first tool crate.
-- Shell platform:
-  - #2 sets up Trunk + Tailwind for the shell.
-  - #6 wires routes/layout.
-  - #7 loads the runtime registry.
-  - #12 defines the JS/WASM mounting contract.
-  - #13 implements the tool host.
-  - #14 adds loading and error states.
-- Shell features:
-  - #8 index page depends on #6 and #7.
-  - #9 category page depends on #6 and #7.
-  - #10 search depends on #7 and the index/category pages.
-  - #11 recents depends on the tool host and route transitions.
-- First tool:
-  - #16 calculator UI/logic depends on #15 and core contracts.
-  - #17 unit tests depend on #16 state shape.
-  - #18 registration/thumb depends on #4, #7, and #15/#16.
-- Quality/docs:
-  - #19 Playwright smoke test depends on the shell routes, host, and calculator registration.
-  - #20 keyboard nav/a11y depends on the shell UI being largely complete.
-  - #21 developer guide should reflect final workspace and registry conventions.
+- Only issue `#43` is in scope for this batch.
+- It depends on the existing shell/tool architecture already merged:
+  - Trunk + Tailwind pipeline
+  - calculator tool crate
+  - `cargo xtask build`
+  - developer guide in `docs/ADDING_A_TOOL.md`
 
 Key design decisions
 
-- Use a manifest-driven tool catalog. `tools-registry.toml` remains the canonical list of tools, categories, routes, thumbnails, and loading metadata.
-- Keep the runtime contract narrow. The shell should only need tool metadata plus a mount entrypoint; tool internals stay isolated.
-- Prefer deterministic routes such as `/tool/:tool_id` and `/category/:category_slug` so registry data maps directly to URLs.
-- Treat calculator as the reference implementation for future tools. Its crate structure and registration flow should become the documented template.
-- Put build knowledge in `xtask`, not ad hoc shell scripts. Later issues can call one entrypoint for validation, asset prep, and frontend build.
-- Design for progressive enhancement. If a tool fails to load, the shell still renders metadata, search results, and recoverable error states.
+- Treat tool crates as first-class Tailwind content sources. The content scan
+  must include `./crates/tools/**/*.rs` so runtime-rendered tool markup keeps
+  its utility classes in the final CSS bundle.
+- Keep the fix centralized in `tailwind.config.js`. No per-tool workaround or
+  duplicated safelist should be introduced when one content-path update solves
+  the root problem.
+- Validate through the real packaging path with `cargo xtask build`, because
+  that is what emits the CSS bundle consumed by deployed shells.
+- Use the calculator as the verification target: the expected result is the
+  normal four-column keypad layout instead of a vertically stacked, purged-CSS
+  rendering.
