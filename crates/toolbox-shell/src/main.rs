@@ -828,23 +828,36 @@ fn ToolPage() -> impl IntoView {
                                 </div>
                             }
                                 .into_any(),
-                            None => view! {
-                                <div class="flex flex-col gap-3">
-                                    <span class="text-xs uppercase tracking-[0.28em] text-slate-400">
-                                        "Placeholder slot"
-                                    </span>
-                                    <strong class="text-xl font-semibold text-white">
-                                        {format!("{} host surface", format_segment(&slug()))}
-                                    </strong>
-                                    <p class="text-sm leading-6 text-slate-300">
-                                        "No registry entry matched this tool slug."
-                                    </p>
-                                </div>
-                            }
-                                .into_any(),
+                            None => view! { <UnknownToolPage slug=slug() /> }.into_any(),
                         },
                     },
                 }}
+            </div>
+        </section>
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[component]
+fn UnknownToolPage(slug: String) -> impl IntoView {
+    view! {
+        <section class="flex min-h-[18rem] flex-col items-start justify-center gap-5">
+            <span class="text-sm font-semibold uppercase tracking-[0.32em] text-rose-300">
+                "404"
+            </span>
+            <h2 class="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                "Unknown tool"
+            </h2>
+            <p class="max-w-xl text-base leading-7 text-slate-300">
+                {format!("No tool is registered for the slug \"{slug}\".")}
+            </p>
+            <div class="flex flex-wrap gap-3">
+                <A href="/" attr:class="shell-pill">
+                    "Return to index"
+                </A>
+                <A href="/tools/calculator" attr:class="shell-nav-link">
+                    "Open a known tool"
+                </A>
             </div>
         </section>
     }
