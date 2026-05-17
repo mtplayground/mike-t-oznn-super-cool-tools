@@ -25,11 +25,12 @@ fn main() {
 fn run() -> Result<()> {
     let mut args = env::args().skip(1);
     let Some(command) = args.next() else {
-        return Err("expected a subcommand, e.g. `cargo xtask build`".into());
+        return Err("expected a subcommand, e.g. `cargo xtask build` or `cargo xtask e2e`".into());
     };
 
     match command.as_str() {
         "build" => build(),
+        "e2e" => e2e(),
         other => Err(format!("unsupported xtask subcommand `{other}`").into()),
     }
 }
@@ -64,6 +65,30 @@ fn build() -> Result<()> {
     let registry_json_path = dist_dir.join("registry.json");
     let registry_json = serde_json::to_string_pretty(&registry)?;
     fs::write(registry_json_path, registry_json)?;
+
+    Ok(())
+}
+
+fn e2e() -> Result<()> {
+    let root = workspace_root()?;
+
+    build()?;
+    run_checked(
+        command_in_root("npm", ["ci"], &root),
+        "npm ci for Playwright smoke tests",
+    )?;
+    run_checked(
+        command_in_root(
+            "npx",
+            ["playwright", "install", "--with-deps", "chromium"],
+            &root,
+        ),
+        "playwright browser install",
+    )?;
+    run_checked(
+        command_in_root("npx", ["playwright", "test"], &root),
+        "playwright smoke tests",
+    )?;
 
     Ok(())
 }
