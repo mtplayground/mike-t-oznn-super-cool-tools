@@ -252,7 +252,7 @@ mod tests {
                 Category::Math,
                 ["math", "utility"],
                 "A simple calculator tool.",
-                "/assets/calculator.png",
+                "/public/thumbnails/calculator.svg",
             ),
             crate_path: "crates/tools/calculator".to_owned(),
             entry_symbol: "mount".to_owned(),

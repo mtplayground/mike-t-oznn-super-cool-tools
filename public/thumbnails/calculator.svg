@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 240" role="img" aria-labelledby="title desc">
+  <title id="title">Calculator thumbnail</title>
+  <desc id="desc">Stylized calculator with math symbols on a cyan and slate background.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#082f49" />
+      <stop offset="55%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#111827" />
+    </linearGradient>
+    <linearGradient id="screen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#67e8f9" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+  </defs>
+
+  <rect width="320" height="240" rx="28" fill="url(#bg)" />
+  <circle cx="262" cy="52" r="46" fill="#22d3ee" fill-opacity="0.16" />
+  <circle cx="48" cy="202" r="58" fill="#06b6d4" fill-opacity="0.12" />
+
+  <g transform="translate(74 28)">
+    <rect width="172" height="184" rx="24" fill="#020617" stroke="#67e8f9" stroke-opacity="0.28" />
+    <rect x="18" y="18" width="136" height="44" rx="14" fill="url(#screen)" />
+    <text x="138" y="47" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" fill="#083344">12.34</text>
+
+    <g fill="#0f172a">
+      <rect x="18" y="84" width="28" height="28" rx="8" />
+      <rect x="54" y="84" width="28" height="28" rx="8" />
+      <rect x="90" y="84" width="28" height="28" rx="8" />
+      <rect x="126" y="84" width="28" height="28" rx="8" fill="#164e63" />
+      <rect x="18" y="120" width="28" height="28" rx="8" />
+      <rect x="54" y="120" width="28" height="28" rx="8" />
+      <rect x="90" y="120" width="28" height="28" rx="8" />
+      <rect x="126" y="120" width="28" height="64" rx="8" fill="#0f766e" />
+      <rect x="18" y="156" width="64" height="28" rx="8" />
+      <rect x="90" y="156" width="28" height="28" rx="8" />
+    </g>
+
+    <g font-family="ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="700" fill="#e2e8f0">
+      <text x="32" y="103" text-anchor="middle">7</text>
+      <text x="68" y="103" text-anchor="middle">8</text>
+      <text x="104" y="103" text-anchor="middle">9</text>
+      <text x="140" y="103" text-anchor="middle">÷</text>
+      <text x="32" y="139" text-anchor="middle">4</text>
+      <text x="68" y="139" text-anchor="middle">5</text>
+      <text x="104" y="139" text-anchor="middle">6</text>
+      <text x="140" y="157" text-anchor="middle">=</text>
+      <text x="50" y="175" text-anchor="middle">0</text>
+      <text x="104" y="175" text-anchor="middle">.</text>
+    </g>
+  </g>
+</svg>
