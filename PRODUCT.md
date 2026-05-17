@@ -30,6 +30,8 @@ shell that loads individual WebAssembly tools at runtime.
 - Tools are declared in `tools-registry.toml`
 - Tools must export the loader contract expected by the shell:
   `mount(host_element)` and `unmount()`
+- Tailwind content scanning includes both shell and tool Rust sources; if a new
+  top-level UI source path is introduced, add it to `tailwind.config.js`
 - Packaged assets are emitted under `dist/tools/<slug>/`
 - Use `cargo xtask build` for the real frontend/tool build, not raw ad hoc
   packaging steps
