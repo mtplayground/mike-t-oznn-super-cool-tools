@@ -1,6 +1,8 @@
 #![forbid(unsafe_code)]
 
 mod registry;
+#[cfg(target_arch = "wasm32")]
+mod tool_host;
 
 #[cfg(target_arch = "wasm32")]
 use leptos::prelude::*;
@@ -13,6 +15,8 @@ use leptos_router::{
 };
 #[cfg(target_arch = "wasm32")]
 use registry::{category_from_slug, provide_registry_context, use_registry_context};
+#[cfg(target_arch = "wasm32")]
+use tool_host::ToolHost;
 #[cfg(target_arch = "wasm32")]
 use toolbox_core::{Category, Context, ToolMeta};
 
@@ -762,7 +766,7 @@ fn ToolPage() -> impl IntoView {
                     {move || format!("Tool: {}", format_segment(&slug()))}
                 </h1>
                 <p class="max-w-xl text-base leading-7 text-slate-300">
-                    "This route reserves the content slot where the tool host will mount the selected tool in a later issue."
+                    "The shell loads each tool module on demand, initializes its wasm bundle once, and mounts it into the host surface below."
                 </p>
             </div>
 
@@ -800,10 +804,10 @@ fn ToolPage() -> impl IntoView {
                             Some(tool) => view! {
                                 <div class="flex flex-col gap-3">
                                     <span class="text-xs uppercase tracking-[0.28em] text-slate-400">
-                                        "Placeholder slot"
+                                        "Live tool host"
                                     </span>
                                     <strong class="text-xl font-semibold text-white">
-                                        {format!("{} host surface", tool.name)}
+                                        {tool.name.clone()}
                                     </strong>
                                     <p class="text-sm leading-6 text-slate-300">{tool.description}</p>
                                     <div class="flex flex-wrap gap-2">
@@ -819,6 +823,8 @@ fn ToolPage() -> impl IntoView {
                                             }
                                         />
                                     </div>
+
+                                    <ToolHost slug=tool.slug.clone() />
                                 </div>
                             }
                                 .into_any(),
