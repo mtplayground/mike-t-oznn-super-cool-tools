@@ -47,4 +47,12 @@
   .shell-placeholder {
     @apply toolbox-panel flex min-h-[18rem] items-center justify-center border-dashed p-8;
   }
+
+  .shell-metric-label {
+    @apply text-xs uppercase tracking-[0.24em] text-slate-400;
+  }
+
+  .shell-metric-value {
+    @apply mt-3 block text-3xl font-semibold tracking-tight text-white;
+  }
 }

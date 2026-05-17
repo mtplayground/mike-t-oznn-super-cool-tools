@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 
+mod registry;
+
 #[cfg(target_arch = "wasm32")]
 use leptos::prelude::*;
 #[cfg(target_arch = "wasm32")]
@@ -8,6 +10,8 @@ use leptos_router::{
     hooks::{use_location, use_params_map},
     path,
 };
+#[cfg(target_arch = "wasm32")]
+use registry::{category_from_slug, provide_registry_context, use_registry_context};
 
 #[cfg(target_arch = "wasm32")]
 fn main() {
@@ -23,6 +27,8 @@ fn main() {
 #[cfg(target_arch = "wasm32")]
 #[component]
 fn App() -> impl IntoView {
+    let _registry = provide_registry_context();
+
     view! {
         <Router>
             <div class="shell-page">
@@ -151,6 +157,8 @@ fn Breadcrumbs() -> impl IntoView {
 #[cfg(target_arch = "wasm32")]
 #[component]
 fn HomePage() -> impl IntoView {
+    let registry = use_registry_context();
+
     view! {
         <section class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <div class="flex flex-col gap-5">
@@ -171,6 +179,50 @@ fn HomePage() -> impl IntoView {
                         "Open tool placeholder"
                     </A>
                 </div>
+
+                {move || match registry.clone() {
+                    None => view! {
+                        <p class="text-sm text-amber-200">
+                            "Registry context is unavailable."
+                        </p>
+                    }
+                        .into_any(),
+                    Some(registry) => match registry.0.get() {
+                        None => view! {
+                            <p class="text-sm text-slate-400">
+                                "Loading runtime registry..."
+                            </p>
+                        }
+                            .into_any(),
+                        Some(Err(error)) => view! {
+                            <p class="text-sm text-rose-300">{error.to_string()}</p>
+                        }
+                            .into_any(),
+                        Some(Ok(catalog)) => {
+                            let tool_count = catalog.tools().len();
+                            let utility_count = catalog.by_tag("utility").len();
+                            let matched = catalog.filter("calculator").len();
+
+                            view! {
+                                <div class="grid gap-3 sm:grid-cols-3">
+                                    <div class="toolbox-panel p-4">
+                                        <span class="shell-metric-label">"Loaded tools"</span>
+                                        <strong class="shell-metric-value">{tool_count}</strong>
+                                    </div>
+                                    <div class="toolbox-panel p-4">
+                                        <span class="shell-metric-label">"Utility tag matches"</span>
+                                        <strong class="shell-metric-value">{utility_count}</strong>
+                                    </div>
+                                    <div class="toolbox-panel p-4">
+                                        <span class="shell-metric-label">"Full-text \"calculator\""</span>
+                                        <strong class="shell-metric-value">{matched}</strong>
+                                    </div>
+                                </div>
+                            }
+                                .into_any()
+                        }
+                    },
+                }}
             </div>
 
             <aside class="toolbox-panel flex flex-col gap-4 p-6">
@@ -190,6 +242,7 @@ fn HomePage() -> impl IntoView {
 #[component]
 fn CategoryPage() -> impl IntoView {
     let params = use_params_map();
+    let registry = use_registry_context();
     let slug = move || {
         params
             .with(|params| params.get("slug"))
@@ -214,6 +267,68 @@ fn CategoryPage() -> impl IntoView {
                 <span class="text-xs uppercase tracking-[0.28em] text-slate-400">"Slug"</span>
                 <code class="text-sm text-cyan-200">{slug}</code>
             </div>
+
+            {move || match registry.clone() {
+                None => view! {
+                    <p class="text-sm text-amber-200">"Registry context is unavailable."</p>
+                }
+                    .into_any(),
+                Some(registry) => match registry.0.get() {
+                    None => view! {
+                        <p class="text-sm text-slate-400">"Loading category tools..."</p>
+                    }
+                        .into_any(),
+                    Some(Err(error)) => view! {
+                        <p class="text-sm text-rose-300">{error.to_string()}</p>
+                    }
+                        .into_any(),
+                    Some(Ok(catalog)) => {
+                        let current_slug = slug();
+                        let tools = category_from_slug(&current_slug)
+                            .map(|category| catalog.by_category(&category))
+                            .unwrap_or_else(|| catalog.by_category_slug(&current_slug));
+                        let has_tools = !tools.is_empty();
+
+                        view! {
+                            <div class="toolbox-panel flex flex-col gap-4 p-6">
+                                <div class="flex items-center justify-between gap-4">
+                                    <h2 class="text-lg font-semibold text-white">"Registered tools"</h2>
+                                    <span class="text-sm text-slate-400">
+                                        {format!("{} match(es)", tools.len())}
+                                    </span>
+                                </div>
+
+                                {if has_tools {
+                                    view! {
+                                        <ul class="space-y-3">
+                                            <For
+                                                each=move || tools.clone()
+                                                key=|tool| tool.slug.clone()
+                                                children=move |tool| {
+                                                    view! {
+                                                        <li class="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-3">
+                                                            <A href=format!("/tools/{}", tool.slug) attr:class="font-medium text-cyan-200 hover:text-cyan-100">
+                                                                {tool.name}
+                                                            </A>
+                                                            <p class="mt-1 text-sm text-slate-400">{tool.description}</p>
+                                                        </li>
+                                                    }
+                                                }
+                                            />
+                                        </ul>
+                                    }.into_any()
+                                } else {
+                                    view! {
+                                        <p class="text-sm text-slate-400">
+                                            "No tools in this category have been loaded yet."
+                                        </p>
+                                    }.into_any()
+                                }}
+                            </div>
+                        }.into_any()
+                    }
+                },
+            }}
         </section>
     }
 }
@@ -222,6 +337,7 @@ fn CategoryPage() -> impl IntoView {
 #[component]
 fn ToolPage() -> impl IntoView {
     let params = use_params_map();
+    let registry = use_registry_context();
     let slug = move || {
         params
             .with(|params| params.get("slug"))
@@ -243,17 +359,78 @@ fn ToolPage() -> impl IntoView {
             </div>
 
             <div class="shell-placeholder">
-                <div class="flex flex-col gap-3">
-                    <span class="text-xs uppercase tracking-[0.28em] text-slate-400">
-                        "Placeholder slot"
-                    </span>
-                    <strong class="text-xl font-semibold text-white">
-                        {move || format!("{} host surface", format_segment(&slug()))}
-                    </strong>
-                    <p class="text-sm leading-6 text-slate-300">
-                        "The router is active and the layout persists around this placeholder."
-                    </p>
-                </div>
+                {move || match registry.clone() {
+                    None => view! {
+                        <p class="text-sm text-amber-200">"Registry context is unavailable."</p>
+                    }
+                        .into_any(),
+                    Some(registry) => match registry.0.get() {
+                        None => view! {
+                            <div class="flex flex-col gap-3">
+                                <span class="text-xs uppercase tracking-[0.28em] text-slate-400">
+                                    "Placeholder slot"
+                                </span>
+                                <strong class="text-xl font-semibold text-white">
+                                    {format!("{} host surface", format_segment(&slug()))}
+                                </strong>
+                                <p class="text-sm leading-6 text-slate-300">
+                                    "Loading tool metadata from registry.json..."
+                                </p>
+                            </div>
+                        }
+                            .into_any(),
+                        Some(Err(error)) => view! {
+                            <div class="flex flex-col gap-3">
+                                <span class="text-xs uppercase tracking-[0.28em] text-rose-300">
+                                    "Registry error"
+                                </span>
+                                <p class="text-sm leading-6 text-rose-200">{error.to_string()}</p>
+                            </div>
+                        }
+                            .into_any(),
+                        Some(Ok(catalog)) => match catalog.by_slug(&slug()) {
+                            Some(tool) => view! {
+                                <div class="flex flex-col gap-3">
+                                    <span class="text-xs uppercase tracking-[0.28em] text-slate-400">
+                                        "Placeholder slot"
+                                    </span>
+                                    <strong class="text-xl font-semibold text-white">
+                                        {format!("{} host surface", tool.name)}
+                                    </strong>
+                                    <p class="text-sm leading-6 text-slate-300">{tool.description}</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <For
+                                            each=move || tool.tags.clone()
+                                            key=|tag| tag.clone()
+                                            children=move |tag| {
+                                                view! {
+                                                    <span class="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-cyan-100">
+                                                        {tag}
+                                                    </span>
+                                                }
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                            }
+                                .into_any(),
+                            None => view! {
+                                <div class="flex flex-col gap-3">
+                                    <span class="text-xs uppercase tracking-[0.28em] text-slate-400">
+                                        "Placeholder slot"
+                                    </span>
+                                    <strong class="text-xl font-semibold text-white">
+                                        {format!("{} host surface", format_segment(&slug()))}
+                                    </strong>
+                                    <p class="text-sm leading-6 text-slate-300">
+                                        "No registry entry matched this tool slug."
+                                    </p>
+                                </div>
+                            }
+                                .into_any(),
+                        },
+                    },
+                }}
             </div>
         </section>
     }

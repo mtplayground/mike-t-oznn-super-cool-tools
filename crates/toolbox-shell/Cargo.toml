@@ -10,5 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 console_error_panic_hook = "0.1.7"
+gloo-net = "0.6.0"
 leptos = { version = "0.8.11", features = ["csr"] }
 leptos_router = "0.8.11"
+toolbox-core = { path = "../toolbox-core" }
