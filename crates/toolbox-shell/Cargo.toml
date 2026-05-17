@@ -1,0 +1,9 @@
+[package]
+name = "toolbox-shell"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "toolbox-shell"
+path = "src/main.rs"
