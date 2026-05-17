@@ -57,6 +57,26 @@ impl RuntimeRegistry {
             .collect()
     }
 
+    pub fn search_by_name_and_tags(&self, query: &str) -> Vec<ToolMeta> {
+        let trimmed = query.trim();
+        if trimmed.is_empty() {
+            return Vec::new();
+        }
+
+        let query = trimmed.to_ascii_lowercase();
+        self.tools
+            .iter()
+            .filter(|tool| {
+                tool.name.to_ascii_lowercase().contains(&query)
+                    || tool
+                        .tags
+                        .iter()
+                        .any(|tag| tag.to_ascii_lowercase().contains(&query))
+            })
+            .cloned()
+            .collect()
+    }
+
     pub fn filter(&self, query: &str) -> Vec<ToolMeta> {
         let trimmed = query.trim();
         if trimmed.is_empty() {
@@ -227,6 +247,21 @@ mod tests {
 
         assert_eq!(tools.len(), 1);
         assert_eq!(tools[0].slug, "json-pretty");
+    }
+
+    #[test]
+    fn searches_tools_by_name_and_tags_only() {
+        let registry = sample_registry();
+
+        let name_match = registry.search_by_name_and_tags("calc");
+        let tag_match = registry.search_by_name_and_tags("format");
+        let description_only_match = registry.search_by_name_and_tags("inspect");
+
+        assert_eq!(name_match.len(), 1);
+        assert_eq!(name_match[0].slug, "calculator");
+        assert_eq!(tag_match.len(), 1);
+        assert_eq!(tag_match[0].slug, "json-pretty");
+        assert!(description_only_match.is_empty());
     }
 
     #[test]

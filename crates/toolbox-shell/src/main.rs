@@ -7,8 +7,9 @@ use leptos::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use leptos_router::{
     components::{A, Route, Router, Routes},
-    hooks::{use_location, use_params_map},
+    hooks::{use_location, use_navigate, use_params_map},
     path,
+    NavigateOptions,
 };
 #[cfg(target_arch = "wasm32")]
 use registry::{category_from_slug, provide_registry_context, use_registry_context};
@@ -56,7 +57,7 @@ fn App() -> impl IntoView {
 fn SiteHeader() -> impl IntoView {
     view! {
         <header class="border-b border-white/10 bg-slate-950/70 backdrop-blur-xl">
-            <div class="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-6 py-5 sm:px-8 lg:px-10">
+            <div class="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-5 sm:px-8 lg:flex-row lg:items-center lg:justify-between lg:px-10">
                 <A href="/" attr:class="flex min-w-0 flex-col">
                     <span class="text-xs font-semibold uppercase tracking-[0.32em] text-cyan-300">
                         "Mike T Oznn"
@@ -66,19 +67,173 @@ fn SiteHeader() -> impl IntoView {
                     </span>
                 </A>
 
-                <nav class="flex items-center gap-3 text-sm text-slate-300">
-                    <A href="/" attr:class="shell-nav-link">
-                        "Home"
-                    </A>
-                    <A href="/category/utilities" attr:class="shell-nav-link">
-                        "Utilities"
-                    </A>
-                    <A href="/tools/calculator" attr:class="shell-nav-link">
-                        "Tool Slot"
-                    </A>
-                </nav>
+                <div class="flex w-full flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+                    <HeaderSearch />
+
+                    <nav class="flex flex-wrap items-center gap-3 text-sm text-slate-300">
+                        <A href="/" attr:class="shell-nav-link">
+                            "Home"
+                        </A>
+                        <A href="/category/utilities" attr:class="shell-nav-link">
+                            "Utilities"
+                        </A>
+                        <A href="/tools/calculator" attr:class="shell-nav-link">
+                            "Tool Slot"
+                        </A>
+                    </nav>
+                </div>
             </div>
         </header>
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[component]
+fn HeaderSearch() -> impl IntoView {
+    let registry = use_registry_context();
+    let registry_for_navigation = registry.clone();
+    let navigate = use_navigate();
+    let (query, set_query) = signal(String::new());
+
+    let open_top_hit = move || {
+        let Some(registry) = registry_for_navigation.clone() else {
+            return;
+        };
+
+        let Some(Ok(catalog)) = registry.0.get() else {
+            return;
+        };
+
+        let Some(tool) = catalog
+            .search_by_name_and_tags(&query.get())
+            .into_iter()
+            .next()
+        else {
+            return;
+        };
+
+        set_query.set(String::new());
+        navigate(
+            &format!("/tools/{}", tool.slug),
+            NavigateOptions::default(),
+        );
+    };
+
+    view! {
+        <div class="header-search">
+            <label class="sr-only" for="header-tool-search">
+                "Search tools"
+            </label>
+            <input
+                id="header-tool-search"
+                type="search"
+                placeholder="Search tools by name or tag"
+                class="header-search-input"
+                prop:value=move || query.get()
+                on:input=move |event| {
+                    set_query.set(event_target_value(&event));
+                }
+                on:keydown=move |event| {
+                    if event.key() == "Enter" {
+                        event.prevent_default();
+                        open_top_hit();
+                    }
+                }
+            />
+
+            {move || {
+                let current_query = query.get();
+                let trimmed = current_query.trim().to_owned();
+
+                if trimmed.is_empty() {
+                    return ().into_any();
+                }
+
+                match registry.clone() {
+                    None => view! {
+                        <div class="header-search-dropdown">
+                            <p class="header-search-empty">
+                                "Search is unavailable because the registry context is missing."
+                            </p>
+                        </div>
+                    }
+                        .into_any(),
+                    Some(registry) => match registry.0.get() {
+                        None => view! {
+                            <div class="header-search-dropdown">
+                                <p class="header-search-empty">"Loading tools..."</p>
+                            </div>
+                        }
+                            .into_any(),
+                        Some(Err(error)) => view! {
+                            <div class="header-search-dropdown">
+                                <p class="header-search-empty">{error.to_string()}</p>
+                            </div>
+                        }
+                            .into_any(),
+                        Some(Ok(catalog)) => {
+                            let matches = catalog
+                                .search_by_name_and_tags(&trimmed)
+                                .into_iter()
+                                .take(6)
+                                .collect::<Vec<_>>();
+
+                            if matches.is_empty() {
+                                view! {
+                                    <div class="header-search-dropdown">
+                                        <p class="header-search-empty">
+                                            {format!("No tools match \"{trimmed}\".")}
+                                        </p>
+                                    </div>
+                                }
+                                    .into_any()
+                            } else {
+                                view! {
+                                    <div class="header-search-dropdown">
+                                        <div class="header-search-summary">
+                                            {format!("{} match{}", matches.len(), if matches.len() == 1 { "" } else { "es" })}
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <For
+                                                each=move || matches.clone()
+                                                key=|tool| tool.slug.clone()
+                                                children=move |tool| {
+                                                    let href = format!("/tools/{}", tool.slug);
+                                                    let summary = if tool.tags.is_empty() {
+                                                        tool.category.label().to_owned()
+                                                    } else {
+                                                        format!(
+                                                            "{} • {}",
+                                                            tool.category.label(),
+                                                            tool.tags.iter().take(3).cloned().collect::<Vec<_>>().join(", ")
+                                                        )
+                                                    };
+
+                                                    view! {
+                                                        <A href=href attr:class="header-search-result">
+                                                            <span class="header-search-result-name">
+                                                                {tool.name}
+                                                            </span>
+                                                            <span class="header-search-result-meta">
+                                                                {summary}
+                                                            </span>
+                                                        </A>
+                                                    }
+                                                }
+                                            />
+                                        </div>
+                                        <p class="header-search-hint">
+                                            "Press Enter to open the top result."
+                                        </p>
+                                    </div>
+                                }
+                                    .into_any()
+                            }
+                        }
+                    },
+                }
+            }}
+        </div>
     }
 }
 
