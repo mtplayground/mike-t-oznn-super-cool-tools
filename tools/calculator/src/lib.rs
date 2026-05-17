@@ -13,14 +13,18 @@ pub fn mount_calculator() -> String {
     display_name().to_owned()
 }
 
+#[wasm_bindgen]
+pub fn unmount() {}
+
 #[cfg(test)]
 mod tests {
-    use super::{display_name, mount_calculator, TOOL_NAME};
+    use super::{display_name, mount_calculator, unmount, TOOL_NAME};
 
     #[test]
     fn exposes_tool_identity() {
         assert_eq!(TOOL_NAME, "calculator");
         assert_eq!(display_name(), "Calculator");
         assert_eq!(mount_calculator(), "Calculator");
+        unmount();
     }
 }

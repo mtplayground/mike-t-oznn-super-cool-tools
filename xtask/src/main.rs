@@ -7,7 +7,10 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus};
 
-use toolbox_core::{RegisteredTool, ToolRegistry};
+use toolbox_core::{
+    RegisteredTool, ToolRegistry, TOOL_INIT_EXPORT_NAME, TOOL_LOADER_FILE_NAME,
+    TOOL_MOUNT_EXPORT_NAME, TOOL_UNMOUNT_EXPORT_NAME,
+};
 
 type DynError = Box<dyn std::error::Error>;
 type Result<T> = std::result::Result<T, DynError>;
@@ -97,29 +100,77 @@ fn build_tool(
     )?;
 
     copy_dir_contents(&package_dir, &final_dir)?;
-    ensure_expected_wasm_exists(&final_dir, tool)?;
+    ensure_expected_artifacts_exist(&final_dir, tool)?;
+    write_loader_shim(&final_dir, tool)?;
 
     Ok(())
 }
 
-fn ensure_expected_wasm_exists(final_dir: &Path, tool: &RegisteredTool) -> Result<()> {
+fn ensure_expected_artifacts_exist(final_dir: &Path, tool: &RegisteredTool) -> Result<()> {
     let file_name = tool
         .wasm_url
         .rsplit('/')
         .next()
         .ok_or_else(|| format!("tool `{}` has an invalid wasm_url", tool.meta.slug))?;
     let artifact_path = final_dir.join(file_name);
+    let bindings_path = final_dir.join(format!("{}.js", tool.meta.slug));
 
-    if artifact_path.exists() {
-        return Ok(());
+    if !artifact_path.exists() {
+        return Err(format!(
+            "tool `{}` expected wasm artifact `{}` to exist after packaging",
+            tool.meta.slug,
+            artifact_path.display()
+        )
+        .into());
     }
 
-    Err(format!(
-        "tool `{}` expected wasm artifact `{}` to exist after packaging",
-        tool.meta.slug,
-        artifact_path.display()
+    if !bindings_path.exists() {
+        return Err(format!(
+            "tool `{}` expected wasm-bindgen JS bindings `{}` to exist after packaging",
+            tool.meta.slug,
+            bindings_path.display()
+        )
+        .into());
+    }
+
+    Ok(())
+}
+
+fn write_loader_shim(final_dir: &Path, tool: &RegisteredTool) -> Result<()> {
+    let loader_path = final_dir.join(TOOL_LOADER_FILE_NAME);
+    fs::write(loader_path, render_loader_shim(tool))?;
+    Ok(())
+}
+
+fn render_loader_shim(tool: &RegisteredTool) -> String {
+    let bindings_module_path = format!("./{}.js", tool.meta.slug);
+
+    format!(
+        "import init, * as bindings from \"{bindings_module_path}\";\n\n\
+export {{ init as {tool_init_export_name} }};\n\n\
+export function {tool_mount_export_name}(...args) {{\n\
+  const mount = bindings[\"{entry_symbol}\"];\n\
+  if (typeof mount !== \"function\") {{\n\
+    throw new Error(\"Tool `{slug}` is missing wasm-bindgen export `{entry_symbol}` required by the loader contract.\");\n\
+  }}\n\
+\n\
+  return mount(...args);\n\
+}}\n\n\
+export function {tool_unmount_export_name}(...args) {{\n\
+  const unmount = bindings[\"{tool_unmount_export_name}\"];\n\
+  if (typeof unmount !== \"function\") {{\n\
+    return undefined;\n\
+  }}\n\
+\n\
+  return unmount(...args);\n\
+}}\n",
+        bindings_module_path = bindings_module_path,
+        tool_init_export_name = TOOL_INIT_EXPORT_NAME,
+        tool_mount_export_name = TOOL_MOUNT_EXPORT_NAME,
+        tool_unmount_export_name = TOOL_UNMOUNT_EXPORT_NAME,
+        slug = tool.meta.slug,
+        entry_symbol = tool.entry_symbol,
     )
-    .into())
 }
 
 fn wasm_pack_executable(root: &Path) -> String {
@@ -185,4 +236,38 @@ fn ensure_success(status: ExitStatus, context: &str) -> Result<()> {
 fn path_to_str(path: &Path) -> Result<&str> {
     path.to_str()
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "non-utf8 path").into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::render_loader_shim;
+    use toolbox_core::{Category, RegisteredTool, ToolMeta};
+
+    fn sample_tool() -> RegisteredTool {
+        RegisteredTool {
+            meta: ToolMeta::new(
+                "calculator",
+                "calculator",
+                "Calculator",
+                Category::Math,
+                ["math", "utility"],
+                "A simple calculator tool.",
+                "/assets/calculator.png",
+            ),
+            crate_path: "tools/calculator".to_owned(),
+            entry_symbol: "mount_calculator".to_owned(),
+            wasm_url: "/tools/calculator/calculator_bg.wasm".to_owned(),
+        }
+    }
+
+    #[test]
+    fn renders_loader_shim_with_contract_exports() {
+        let shim = render_loader_shim(&sample_tool());
+
+        assert!(shim.contains("import init, * as bindings from \"./calculator.js\";"));
+        assert!(shim.contains("export { init as default };"));
+        assert!(shim.contains("export function mount(...args) {"));
+        assert!(shim.contains("bindings[\"mount_calculator\"]"));
+        assert!(shim.contains("export function unmount(...args) {"));
+    }
 }
