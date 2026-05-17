@@ -38,13 +38,16 @@ enum ToolHostStatus {
 pub fn ToolHost(slug: String) -> impl IntoView {
     let container_ref = NodeRef::<html::Div>::new();
     let (status, set_status) = signal(ToolHostStatus::Loading);
+    let (attempt, set_attempt) = signal(0_u32);
+    let slug_for_effect = slug.clone();
 
     Effect::new(move |_| {
+        let _ = attempt.get();
         let Some(container) = container_ref.get() else {
             return;
         };
 
-        let active_slug = slug.clone();
+        let active_slug = slug_for_effect.clone();
         let cancelled = Arc::new(AtomicBool::new(false));
         let cancelled_for_cleanup = Arc::clone(&cancelled);
         let slug_for_cleanup = active_slug.clone();
@@ -85,13 +88,27 @@ pub fn ToolHost(slug: String) -> impl IntoView {
                 }
                     .into_any(),
                 ToolHostStatus::Ready => ().into_any(),
-                ToolHostStatus::Error(message) => view! {
-                    <div class="tool-host-error" role="alert">
-                        <span class="tool-host-error-label">"Tool load failed"</span>
-                        <p>{message}</p>
-                    </div>
+                ToolHostStatus::Error(message) => {
+                    let retry_slug = slug.clone();
+                    view! {
+                        <div class="tool-host-error" role="alert">
+                            <span class="tool-host-error-label">"Tool load failed"</span>
+                            <p>{message}</p>
+                            <button
+                                type="button"
+                                class="tool-host-retry"
+                                on:click=move |_| {
+                                    set_status.set(ToolHostStatus::Loading);
+                                    clear_cached_tool_module(&retry_slug);
+                                    set_attempt.update(|attempt| *attempt += 1);
+                                }
+                            >
+                                "Retry loading tool"
+                            </button>
+                        </div>
+                    }
+                        .into_any()
                 }
-                    .into_any(),
             }}
 
             <div node_ref=container_ref class="tool-host-container"></div>
@@ -226,6 +243,12 @@ fn export_function(
 
 fn tool_loader_path(slug: &str) -> String {
     format!("/tools/{slug}/{TOOL_LOADER_FILE_NAME}")
+}
+
+fn clear_cached_tool_module(slug: &str) {
+    TOOL_MODULE_CACHE.with(|cache| {
+        cache.borrow_mut().remove(slug);
+    });
 }
 
 fn js_error_message(error: JsValue) -> String {
