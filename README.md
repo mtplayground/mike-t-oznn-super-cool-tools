@@ -17,3 +17,19 @@ shell and individual tool crates.
 ```bash
 cargo build
 ```
+
+## Frontend build
+
+Build the shell and packaged tool artifacts into `dist/` with:
+
+```bash
+cargo xtask build
+```
+
+## End-to-end smoke test
+
+Run the headless Playwright smoke test against the built `dist/` output with:
+
+```bash
+cargo xtask e2e
+```

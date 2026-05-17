@@ -1,0 +1,10 @@
+{
+  "name": "mike-t-oznn-super-cool-tools",
+  "private": true,
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}
