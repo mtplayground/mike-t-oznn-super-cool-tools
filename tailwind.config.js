@@ -1,6 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./index.html", "./crates/toolbox-shell/src/**/*.rs"],
+  content: [
+    "./index.html",
+    "./crates/toolbox-shell/src/**/*.rs",
+    "./crates/tools/**/*.rs",
+  ],
   theme: {
     extend: {
       colors: {
