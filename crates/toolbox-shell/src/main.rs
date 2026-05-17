@@ -366,85 +366,130 @@ fn CategoryPage() -> impl IntoView {
     };
 
     view! {
-        <section class="flex flex-col gap-6">
-            <div class="flex flex-col gap-3">
-                <p class="text-sm font-semibold uppercase tracking-[0.32em] text-cyan-300">
-                    "Category route"
-                </p>
-                <h1 class="text-4xl font-semibold tracking-tight text-white">
-                    {move || format!("Category: {}", format_segment(&slug()))}
-                </h1>
-                <p class="max-w-2xl text-base leading-7 text-slate-300">
-                    "This route is wired and ready for issue #9 to load category-specific tool groups."
-                </p>
-            </div>
+        {move || {
+            let current_slug = slug();
+            let Some(category) = category_from_slug(&current_slug) else {
+                return view! { <UnknownCategoryPage slug=current_slug /> }.into_any();
+            };
 
-            <div class="toolbox-panel flex flex-col gap-3 p-6">
-                <span class="text-xs uppercase tracking-[0.28em] text-slate-400">"Slug"</span>
-                <code class="text-sm text-cyan-200">{slug}</code>
-            </div>
+            let title = category.label().to_owned();
+            let description = category_description(&category).to_owned();
 
-            {move || match registry.clone() {
+            match registry.clone() {
                 None => view! {
-                    <p class="text-sm text-amber-200">"Registry context is unavailable."</p>
+                    <section class="flex flex-col gap-6">
+                        <div class="flex flex-col gap-3">
+                            <p class="text-sm font-semibold uppercase tracking-[0.32em] text-cyan-300">
+                                "Category collection"
+                            </p>
+                            <h1 class="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                                {title}
+                            </h1>
+                            <p class="max-w-3xl text-base leading-7 text-slate-300">
+                                {description}
+                            </p>
+                        </div>
+
+                        <p class="text-sm text-amber-200">"Registry context is unavailable."</p>
+                    </section>
                 }
                     .into_any(),
                 Some(registry) => match registry.0.get() {
                     None => view! {
-                        <p class="text-sm text-slate-400">"Loading category tools..."</p>
+                        <section class="flex flex-col gap-6">
+                            <div class="flex flex-col gap-3">
+                                <p class="text-sm font-semibold uppercase tracking-[0.32em] text-cyan-300">
+                                    "Category collection"
+                                </p>
+                                <h1 class="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                                    {title}
+                                </h1>
+                                <p class="max-w-3xl text-base leading-7 text-slate-300">
+                                    {description}
+                                </p>
+                            </div>
+
+                            <div class="toolbox-panel flex min-h-[16rem] items-center justify-center p-8">
+                                <p class="text-sm text-slate-400">"Loading category tools..."</p>
+                            </div>
+                        </section>
                     }
                         .into_any(),
                     Some(Err(error)) => view! {
-                        <p class="text-sm text-rose-300">{error.to_string()}</p>
+                        <section class="flex flex-col gap-6">
+                            <div class="flex flex-col gap-3">
+                                <p class="text-sm font-semibold uppercase tracking-[0.32em] text-cyan-300">
+                                    "Category collection"
+                                </p>
+                                <h1 class="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                                    {title}
+                                </h1>
+                                <p class="max-w-3xl text-base leading-7 text-slate-300">
+                                    {description}
+                                </p>
+                            </div>
+
+                            <div class="toolbox-panel flex min-h-[16rem] items-center justify-center p-8">
+                                <p class="text-sm text-rose-300">{error.to_string()}</p>
+                            </div>
+                        </section>
                     }
                         .into_any(),
                     Some(Ok(catalog)) => {
-                        let current_slug = slug();
-                        let tools = category_from_slug(&current_slug)
-                            .map(|category| catalog.by_category(&category))
-                            .unwrap_or_else(|| catalog.by_category_slug(&current_slug));
-                        let has_tools = !tools.is_empty();
+                        let tools = catalog.by_category(&category);
 
                         view! {
-                            <div class="toolbox-panel flex flex-col gap-4 p-6">
-                                <div class="flex items-center justify-between gap-4">
-                                    <h2 class="text-lg font-semibold text-white">"Registered tools"</h2>
-                                    <span class="text-sm text-slate-400">
-                                        {format!("{} match(es)", tools.len())}
-                                    </span>
+                            <section class="flex flex-col gap-6">
+                                <div class="flex flex-col gap-3">
+                                    <p class="text-sm font-semibold uppercase tracking-[0.32em] text-cyan-300">
+                                        "Category collection"
+                                    </p>
+                                    <h1 class="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                                        {title}
+                                    </h1>
+                                    <p class="max-w-3xl text-base leading-7 text-slate-300">
+                                        {description}
+                                    </p>
                                 </div>
 
-                                {if has_tools {
-                                    view! {
-                                        <ul class="space-y-3">
-                                            <For
-                                                each=move || tools.clone()
-                                                key=|tool| tool.slug.clone()
-                                                children=move |tool| {
-                                                    view! {
-                                                        <li class="rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-3">
-                                                            <A href=format!("/tools/{}", tool.slug) attr:class="font-medium text-cyan-200 hover:text-cyan-100">
-                                                                {tool.name}
-                                                            </A>
-                                                            <p class="mt-1 text-sm text-slate-400">{tool.description}</p>
-                                                        </li>
-                                                    }
-                                                }
-                                            />
-                                        </ul>
-                                    }.into_any()
-                                } else {
-                                    view! {
-                                        <p class="text-sm text-slate-400">
-                                            "No tools in this category have been loaded yet."
-                                        </p>
-                                    }.into_any()
-                                }}
-                            </div>
-                        }.into_any()
+                                <div class="toolbox-panel flex flex-col gap-3 p-6">
+                                    <span class="text-xs uppercase tracking-[0.28em] text-slate-400">"Category slug"</span>
+                                    <code class="text-sm text-cyan-200">{current_slug}</code>
+                                </div>
+
+                                <CategorySection category=category tools=tools />
+                            </section>
+                        }
+                            .into_any()
                     }
                 },
-            }}
+            }
+        }}
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[component]
+fn UnknownCategoryPage(slug: String) -> impl IntoView {
+    view! {
+        <section class="flex min-h-[28rem] flex-col items-start justify-center gap-5">
+            <span class="text-sm font-semibold uppercase tracking-[0.32em] text-rose-300">
+                "404"
+            </span>
+            <h1 class="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                "Unknown category"
+            </h1>
+            <p class="max-w-2xl text-base leading-7 text-slate-300">
+                {format!("No category is registered for the slug \"{slug}\".")}
+            </p>
+            <div class="flex flex-wrap gap-3">
+                <A href="/" attr:class="shell-pill">
+                    "Return to index"
+                </A>
+                <A href="/category/math" attr:class="shell-nav-link">
+                    "Open a known category"
+                </A>
+            </div>
         </section>
     }
 }
@@ -636,4 +681,16 @@ fn short_description(description: &str, max_chars: usize) -> String {
     let mut shortened = trimmed.chars().take(max_chars.saturating_sub(1)).collect::<String>();
     shortened.push('…');
     shortened
+}
+
+#[cfg(target_arch = "wasm32")]
+fn category_description(category: &Category) -> &'static str {
+    match category {
+        Category::Utilities => "Everyday helpers and quick-access tools for common tasks.",
+        Category::Math => "Calculators and numeric tools for fast, focused problem solving.",
+        Category::Text => "Formatting, editing, and transformation tools for written content.",
+        Category::Developer => "Utilities for inspecting, formatting, and debugging developer data.",
+        Category::Media => "Tools for working with visual, audio, and other media assets.",
+        Category::Productivity => "Workflow-oriented tools designed to speed up repetitive work.",
+    }
 }
