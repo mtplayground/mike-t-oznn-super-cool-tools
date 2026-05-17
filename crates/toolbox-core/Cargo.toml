@@ -6,3 +6,8 @@ version.workspace = true
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+thiserror = "2.0.18"
+web-sys = { version = "0.3.98", features = ["HtmlElement", "Storage", "Window"] }
