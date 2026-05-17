@@ -33,6 +33,7 @@ impl RuntimeRegistry {
             .collect()
     }
 
+    #[allow(dead_code)]
     pub fn by_category_slug(&self, category_slug: &str) -> Vec<ToolMeta> {
         self.tools
             .iter()
