@@ -88,7 +88,7 @@ mod tests {
             Category::Math,
             ["math", "utility"],
             "A simple calculator.",
-            "/assets/calculator.png",
+            "/public/thumbnails/calculator.svg",
         );
 
         assert_eq!(meta.id, "calculator");
@@ -97,6 +97,6 @@ mod tests {
         assert_eq!(meta.category, Category::Math);
         assert_eq!(meta.tags, vec!["math", "utility"]);
         assert_eq!(meta.description, "A simple calculator.");
-        assert_eq!(meta.thumbnail, "/assets/calculator.png");
+        assert_eq!(meta.thumbnail, "/public/thumbnails/calculator.svg");
     }
 }

@@ -119,7 +119,7 @@ mod tests {
         category = "math"
         tags = ["math", "utility"]
         description = "A simple calculator."
-        thumbnail = "/assets/calculator.png"
+        thumbnail = "/public/thumbnails/calculator.svg"
         crate_path = "crates/tools/calculator"
         entry_symbol = "mount"
         wasm_url = "/tools/calculator/calculator.wasm"

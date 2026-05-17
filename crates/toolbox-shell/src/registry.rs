@@ -200,7 +200,7 @@ mod tests {
                 Category::Math,
                 ["math", "utility"],
                 "A calculator for arithmetic.",
-                "/assets/calculator.png",
+                "/public/thumbnails/calculator.svg",
             ),
             ToolMeta::new(
                 "json-pretty",
