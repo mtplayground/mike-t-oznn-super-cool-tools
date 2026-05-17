@@ -92,6 +92,26 @@
     @apply mt-3 block text-3xl font-semibold tracking-tight text-white;
   }
 
+  .recent-strip {
+    @apply flex gap-4 overflow-x-auto pb-2;
+  }
+
+  .recent-tool {
+    @apply toolbox-panel flex min-w-[18rem] max-w-[18rem] items-start gap-4 border-white/10 bg-slate-900/50 p-4 transition hover:-translate-y-1 hover:border-cyan-400/35 hover:bg-slate-900/80;
+  }
+
+  .recent-tool-thumbnail {
+    @apply h-16 w-16 flex-none rounded-2xl border border-white/10 object-cover;
+  }
+
+  .recent-tool-title {
+    @apply truncate text-base font-semibold tracking-tight text-white;
+  }
+
+  .recent-tool-meta {
+    @apply mt-1 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-200;
+  }
+
   .tool-card {
     @apply toolbox-panel flex min-h-[22rem] flex-col overflow-hidden border-white/10 bg-slate-900/50 transition duration-200 hover:-translate-y-1 hover:border-cyan-400/35 hover:bg-slate-900/80 hover:shadow-[0_28px_100px_rgba(34,211,238,0.14)];
   }
