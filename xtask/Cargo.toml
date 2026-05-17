@@ -1,0 +1,13 @@
+[package]
+name = "xtask"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "xtask"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1.0.145"
+toolbox-core = { path = "../crates/toolbox-core" }

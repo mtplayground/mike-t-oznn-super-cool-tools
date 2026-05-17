@@ -14,3 +14,4 @@ node_modules/
 .progress
 .tailwindcss/
 crates/toolbox-shell/dist/
+target/xtask/
