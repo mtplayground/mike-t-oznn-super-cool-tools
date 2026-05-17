@@ -1,4 +1,5 @@
 target/
+dist/
 node_modules/
 .gh_token
 .claude/
@@ -11,3 +12,5 @@ node_modules/
 .pipeline-state.json
 .gitkeep
 .progress
+.tailwindcss/
+crates/toolbox-shell/dist/
