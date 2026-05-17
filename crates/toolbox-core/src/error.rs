@@ -19,3 +19,17 @@ pub enum StorageError {
     #[error("localStorage is only available on wasm32 targets")]
     UnsupportedPlatform,
 }
+
+#[derive(Debug, Error)]
+pub enum RegistryError {
+    #[error("failed to read registry file `{path}`: {source}")]
+    ReadFile {
+        path: String,
+        #[source]
+        source: std::io::Error,
+    },
+    #[error("failed to parse registry TOML: {0}")]
+    ParseToml(#[from] toml::de::Error),
+    #[error("invalid tool registry: {0}")]
+    Invalid(String),
+}

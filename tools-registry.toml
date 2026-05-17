@@ -1,0 +1,11 @@
+[[tools]]
+id = "calculator"
+slug = "calculator"
+name = "Calculator"
+category = "math"
+tags = ["math", "utility"]
+description = "A simple calculator tool."
+thumbnail = "/assets/calculator.png"
+crate_path = "tools/calculator"
+entry_symbol = "mount_calculator"
+wasm_url = "/tools/calculator/calculator.wasm"
