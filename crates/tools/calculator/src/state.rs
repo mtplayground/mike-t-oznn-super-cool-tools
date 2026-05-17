@@ -40,6 +40,8 @@ pub struct CalculatorState {
     current: String,
     stored: Option<f64>,
     pending_operator: Option<Operator>,
+    last_operator: Option<Operator>,
+    last_operand: Option<f64>,
     replace_current: bool,
     error: bool,
 }
@@ -50,6 +52,8 @@ impl Default for CalculatorState {
             current: "0".to_owned(),
             stored: None,
             pending_operator: None,
+            last_operator: None,
+            last_operand: None,
             replace_current: false,
             error: false,
         }
@@ -94,10 +98,14 @@ impl CalculatorState {
         if self.replace_current || self.current == "0" {
             self.current = digit.to_string();
             self.replace_current = false;
+            self.last_operator = None;
+            self.last_operand = None;
             return;
         }
 
         self.current.push(digit);
+        self.last_operator = None;
+        self.last_operand = None;
     }
 
     fn apply_decimal_point(&mut self) {
@@ -108,12 +116,16 @@ impl CalculatorState {
         if self.replace_current {
             self.current = "0.".to_owned();
             self.replace_current = false;
+            self.last_operator = None;
+            self.last_operand = None;
             return;
         }
 
         if !self.current.contains('.') {
             self.current.push('.');
         }
+        self.last_operator = None;
+        self.last_operand = None;
     }
 
     fn apply_operator(&mut self, operator: Operator) {
@@ -150,6 +162,8 @@ impl CalculatorState {
         }
 
         self.pending_operator = Some(operator);
+        self.last_operator = None;
+        self.last_operand = None;
         self.replace_current = true;
     }
 
@@ -158,11 +172,35 @@ impl CalculatorState {
             return;
         }
 
-        let Some(operator) = self.pending_operator else {
+        if let Some(operator) = self.pending_operator {
+            let current_value = match self.current_value() {
+                Ok(value) => value,
+                Err(_) => {
+                    self.set_error();
+                    return;
+                }
+            };
+
+            let lhs = self.stored.unwrap_or(current_value);
+            match operator.apply(lhs, current_value) {
+                Ok(result) => {
+                    self.current = format_number(result);
+                    self.stored = Some(result);
+                    self.pending_operator = None;
+                    self.last_operator = Some(operator);
+                    self.last_operand = Some(current_value);
+                    self.replace_current = true;
+                }
+                Err(_) => self.set_error(),
+            }
+            return;
+        }
+
+        let (Some(operator), Some(operand)) = (self.last_operator, self.last_operand) else {
             return;
         };
 
-        let current_value = match self.current_value() {
+        let lhs = match self.current_value() {
             Ok(value) => value,
             Err(_) => {
                 self.set_error();
@@ -170,12 +208,10 @@ impl CalculatorState {
             }
         };
 
-        let lhs = self.stored.unwrap_or(current_value);
-        match operator.apply(lhs, current_value) {
+        match operator.apply(lhs, operand) {
             Ok(result) => {
                 self.current = format_number(result);
                 self.stored = Some(result);
-                self.pending_operator = None;
                 self.replace_current = true;
             }
             Err(_) => self.set_error(),
@@ -183,12 +219,14 @@ impl CalculatorState {
     }
 
     fn apply_clear(&mut self) {
-        if self.is_all_clear_state() || self.error {
+        if self.is_all_clear_state() || self.error || self.current == "0" {
             self.reset_all();
             return;
         }
 
         self.current = "0".to_owned();
+        self.last_operator = None;
+        self.last_operand = None;
         self.replace_current = false;
     }
 
@@ -201,6 +239,8 @@ impl CalculatorState {
         if self.replace_current {
             self.current = "0".to_owned();
             self.replace_current = false;
+            self.last_operator = None;
+            self.last_operand = None;
             return;
         }
 
@@ -213,6 +253,8 @@ impl CalculatorState {
         if self.current == "-" || self.current.is_empty() {
             self.current = "0".to_owned();
         }
+        self.last_operator = None;
+        self.last_operand = None;
     }
 
     fn current_value(&self) -> Result<f64, CalculationError> {
@@ -345,6 +387,46 @@ mod tests {
     }
 
     #[test]
+    fn evaluates_simple_chains_left_to_right() {
+        let mut state = CalculatorState::new();
+
+        state.apply(Action::Digit(2));
+        state.apply(Action::Operator(Operator::Add));
+        state.apply(Action::Digit(3));
+        state.apply(Action::Operator(Operator::Multiply));
+        state.apply(Action::Digit(4));
+        state.apply(Action::Equals);
+
+        assert_eq!(state.display(), "20");
+    }
+
+    #[test]
+    fn shows_error_on_divide_by_zero() {
+        let mut state = CalculatorState::new();
+
+        state.apply(Action::Digit(8));
+        state.apply(Action::Operator(Operator::Divide));
+        state.apply(Action::Digit(0));
+        state.apply(Action::Equals);
+
+        assert_eq!(state.display(), "Error");
+        assert_eq!(state.clear_label(), "C");
+    }
+
+    #[test]
+    fn prevents_duplicate_decimal_points() {
+        let mut state = CalculatorState::new();
+
+        state.apply(Action::Digit(1));
+        state.apply(Action::DecimalPoint);
+        state.apply(Action::Digit(2));
+        state.apply(Action::DecimalPoint);
+        state.apply(Action::Digit(3));
+
+        assert_eq!(state.display(), "1.23");
+    }
+
+    #[test]
     fn toggles_clear_label_between_ac_and_c() {
         let mut state = CalculatorState::new();
 
@@ -365,6 +447,39 @@ mod tests {
         state.apply(Action::Backspace);
 
         assert_eq!(state.display(), "4");
+    }
+
+    #[test]
+    fn clear_then_all_clear_resets_pending_calculation() {
+        let mut state = CalculatorState::new();
+
+        state.apply(Action::Digit(9));
+        state.apply(Action::Operator(Operator::Add));
+        state.apply(Action::Digit(1));
+        state.apply(Action::Clear);
+        assert_eq!(state.display(), "0");
+        assert_eq!(state.clear_label(), "C");
+
+        state.apply(Action::Clear);
+        assert_eq!(state.display(), "0");
+        assert_eq!(state.clear_label(), "AC");
+    }
+
+    #[test]
+    fn repeats_last_operation_on_equals() {
+        let mut state = CalculatorState::new();
+
+        state.apply(Action::Digit(5));
+        state.apply(Action::Operator(Operator::Add));
+        state.apply(Action::Digit(2));
+        state.apply(Action::Equals);
+        assert_eq!(state.display(), "7");
+
+        state.apply(Action::Equals);
+        assert_eq!(state.display(), "9");
+
+        state.apply(Action::Equals);
+        assert_eq!(state.display(), "11");
     }
 
     #[test]
