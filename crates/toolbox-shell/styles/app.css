@@ -21,6 +21,11 @@
   a {
     @apply no-underline;
   }
+
+  :focus-visible {
+    outline: 2px solid rgba(103, 232, 249, 0.95);
+    outline-offset: 3px;
+  }
 }
 
 @layer components {
@@ -126,6 +131,14 @@
 
   .tool-host-skeleton-bar {
     @apply h-4 rounded-full bg-white/10;
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 0%,
+      rgba(103, 232, 249, 0.26) 50%,
+      rgba(255, 255, 255, 0.04) 100%
+    );
+    background-size: 220% 100%;
+    animation: skeleton-shimmer 1.35s ease-in-out infinite;
   }
 
   .tool-host-skeleton-bar-lg {
@@ -170,5 +183,39 @@
 
   .tool-card-tag {
     @apply rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-slate-300;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .tool-host-skeleton-bar {
+    animation: none;
+    background-position: 0 0;
+  }
+
+  .shell-nav-link,
+  .header-search-input,
+  .header-search-result,
+  .shell-pill,
+  .recent-tool,
+  .tool-host-retry,
+  .tool-card,
+  .tool-card-arrow {
+    transition: none;
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
   }
 }

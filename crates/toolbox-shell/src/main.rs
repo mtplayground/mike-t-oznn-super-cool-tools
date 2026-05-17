@@ -542,9 +542,15 @@ fn ToolCard(tool: ToolMeta) -> impl IntoView {
     let thumbnail_alt = format!("{} thumbnail", tool.name);
     let short_description = short_description(&tool.description, 88);
     let visible_tags = tool.tags.iter().take(3).cloned().collect::<Vec<_>>();
+    let card_label = format!(
+        "Open {} in {}. {}",
+        tool.name,
+        tool.category.label(),
+        short_description
+    );
 
     view! {
-        <A href=tool_link attr:class="tool-card group">
+        <A href=tool_link attr:class="tool-card group" attr:aria-label=card_label>
             <div class="tool-card-thumbnail">
                 <img
                     src=tool.thumbnail.clone()
